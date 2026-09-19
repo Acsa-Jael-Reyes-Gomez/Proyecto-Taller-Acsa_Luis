@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Órdenes de Trabajo | Taller Mecánico</title>
+    <link rel="stylesheet" href="../styles/styles.css">
+    <link rel="stylesheet" href="../styles/modules/ordenes-trabajo.css">
+</head>
+
+<body class="dashboard-body">
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h2>Taller</h2>
+
+            <button class="sidebar-toggle" id="sidebarToggle" type="button" aria-label="Contraer menu" aria-expanded="true">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M15 6l-6 6 6 6"></path>
+                </svg>
+            </button>
+        </div>
+
+        <nav class="sidebar-nav" aria-label="Menu principal">
+            <a class="nav-button" href="dashboard.html" data-tooltip="Inicio">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M3 11l9-7 9 7"></path>
+                        <path d="M5 10v10h14V10"></path>
+                        <path d="M10 20v-6h4v6"></path>
+                    </svg>
+                </span>
+                <span class="nav-label">Inicio</span>
+            </a>
+
+            <a class="nav-button" href="vehiculos.html" data-tooltip="Vehiculos">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M6 16h12l2-5H4l2 5z"></path>
+                        <path d="M7 16l-1.5 3"></path>
+                        <path d="M17 16l1.5 3"></path>
+                        <path d="M8 19h.01"></path>
+                        <path d="M16 19h.01"></path>
+                        <path d="M7 11l2-4h6l2 4"></path>
+                    </svg>
+                </span>
+                <span class="nav-label">Vehiculos</span>
+            </a>
+
+            <a class="nav-button" href="#" data-tooltip="Servicios">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M14.7 6.3a4 4 0 0 0-5 5L4 17v3h3l5.7-5.7a4 4 0 0 0 5-5l-3 3-2-2 3-3z"></path>
+                    </svg>
+                </span>
+                <span class="nav-label">Servicios</span>
+            </a>
+
+            <a class="nav-button" href="pilotos.html" data-tooltip="Clientes">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"></path>
+                        <path d="M4 21a8 8 0 0 1 16 0"></path>
+                    </svg>
+                </span>
+                <span class="nav-label">Clientes</span>
+            </a>
+
+            <a class="nav-button" href="repuestos.html" data-tooltip="Repuestos">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M7 7h10v10H7z"></path>
+                        <path d="M4 10h3"></path>
+                        <path d="M17 10h3"></path>
+                        <path d="M10 4v3"></path>
+                        <path d="M14 17v3"></path>
+                    </svg>
+                </span>
+                <span class="nav-label">Repuestos</span>
+            </a>
+
+            <a class="nav-button active" href="ordenes-trabajo.html" data-tooltip="Ordenes de Trabajo">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M7 3h10v18H7z"></path>
+                        <path d="M9 7h6"></path>
+                        <path d="M9 11h6"></path>
+                        <path d="M9 15h4"></path>
+                    </svg>
+                </span>
+                <span class="nav-label">Ordenes de Trabajo</span>
+            </a>
+
+            <a class="nav-button" href="#" data-tooltip="Mecanicos">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M16 21v-2a4 4 0 0 0-8 0v2"></path>
+                        <path d="M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"></path>
+                        <path d="M19 8l2 2-4 4-2-2 4-4z"></path>
+                    </svg>
+                </span>
+                <span class="nav-label">Mecanicos</span>
+            </a>
+        </nav>
+    </aside>
+
+    <main class="contenido">
+        <header class="dashboard-title">
+            <div>
+                <p>Control de taller</p>
+                <h1>Ordenes de Trabajo</h1>
+            </div>
+
+            <button class="module-action" id="btnNuevaOrdenTrabajo" type="button">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M12 5v14"></path>
+                    <path d="M5 12h14"></path>
+                </svg>
+                Nueva orden
+            </button>
+        </header>
+
+        <section class="module-page work-order-page">
+            <div class="work-order-indicators">
+                <article class="work-order-indicator">
+                    <span>Total ordenes</span>
+                    <strong id="totalOrdenesTrabajo">0</strong>
+                </article>
+
+                <article class="work-order-indicator">
+                    <span>Abiertas</span>
+                    <strong id="ordenesAbiertas">0</strong>
+                </article>
+
+                <article class="work-order-indicator">
+                    <span>En proceso</span>
+                    <strong id="ordenesProceso">0</strong>
+                </article>
+
+                <article class="work-order-indicator">
+                    <span>Finalizadas</span>
+                    <strong id="ordenesFinalizadas">0</strong>
+                </article>
+
+                <article class="work-order-indicator">
+                    <span>Total repuestos</span>
+                    <strong id="totalRepuestosOrdenes">Q0.00</strong>
+                </article>
+            </div>
+
+            <section class="dashboard-panel work-order-table-panel">
+                <div class="work-order-toolbar">
+                    <label class="search-box">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <circle cx="11" cy="11" r="7"></circle>
+                            <path d="M16 16l4 4"></path>
+                        </svg>
+                        <input id="buscarOrdenTrabajo" type="search" placeholder="Buscar por orden, placa, cliente o mecanico" autocomplete="off">
+                    </label>
+
+                    <select id="filtroEstadoOrdenTrabajo">
+                        <option value="todos">Todos</option>
+                        <option value="Abierta">Abiertas</option>
+                        <option value="En proceso">En proceso</option>
+                        <option value="Finalizada">Finalizadas</option>
+                    </select>
+                </div>
+
+                <div class="work-order-table-scroll">
+                    <table class="data-table work-order-table">
+                        <thead>
+                            <tr>
+                                <th>Orden</th>
+                                <th>Placa</th>
+                                <th>Vehiculo</th>
+                                <th>Cliente</th>
+                                <th>Mecanico</th>
+                                <th>Entrada</th>
+                                <th>Estado</th>
+                                <th>Detalle</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tablaOrdenesTrabajo"></tbody>
+                    </table>
+                </div>
+            </section>
+        </section>
+
+        <div class="work-order-modal" id="modalOrdenTrabajo" aria-hidden="true">
+            <div class="work-order-modal-backdrop" data-close-work-order-modal></div>
+
+            <section class="dashboard-panel work-order-modal-card" role="dialog" aria-modal="true" aria-label="Registro de orden de trabajo">
+                <button class="modal-close" id="btnCerrarOrdenTrabajo" type="button" aria-label="Cerrar orden de trabajo">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M6 6l12 12"></path>
+                        <path d="M18 6L6 18"></path>
+                    </svg>
+                </button>
+
+                <div class="panel-header">
+                    <div>
+                        <p id="ordenTrabajoModo">Registro</p>
+                        <h2>Datos de la orden</h2>
+                    </div>
+                </div>
+
+                <form class="work-order-form" id="formOrdenTrabajo">
+                    <div class="form-section">
+                        <h3>Entrada y salida</h3>
+
+                        <div class="form-grid four">
+                            <label>
+                                Fecha entrada
+                                <input id="ordenFechaEntrada" type="date" required>
+                            </label>
+
+                            <label>
+                                Hora entrada
+                                <span class="time-field">
+                                    <input id="ordenHoraEntrada" type="text" inputmode="numeric" maxlength="5" placeholder="08:15" required>
+                                    <select id="ordenPeriodoEntrada" aria-label="Periodo entrada">
+                                        <option value="AM">AM</option>
+                                        <option value="PM">PM</option>
+                                    </select>
+                                </span>
+                            </label>
+
+                            <label>
+                                Fecha salida
+                                <input id="ordenFechaSalida" type="date">
+                            </label>
+
+                            <label>
+                                Hora salida
+                                <span class="time-field">
+                                    <input id="ordenHoraSalida" type="text" inputmode="numeric" maxlength="5" placeholder="04:20">
+                                    <select id="ordenPeriodoSalida" aria-label="Periodo salida">
+                                        <option value="AM">AM</option>
+                                        <option value="PM">PM</option>
+                                    </select>
+                                </span>
+                            </label>
+                        </div>
+
+                        <div class="form-grid">
+                            <label>
+                                No. orden
+                                <input id="ordenNumero" type="text" placeholder="5451" required>
+                            </label>
+
+                            <label>
+                                Serie
+                                <input id="ordenSerie" type="text" placeholder="Serie A">
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>Vehiculo</h3>
+
+                        <div class="form-grid three">
+                            <label>
+                                Vehiculo
+                                <input id="ordenVehiculo" type="text" placeholder="Freightliner M2">
+                            </label>
+
+                            <label>
+                                Placa
+                                <input id="ordenPlaca" type="text" list="ordenPlacasList" placeholder="C-842BVK" autocomplete="off" required>
+                            </label>
+
+                            <label>
+                                Cliente
+                                <input id="ordenPiloto" type="text" list="ordenPilotosList" placeholder="Luis Morales">
+                            </label>
+                        </div>
+
+                        <div class="form-grid four">
+                            <label>
+                                Marca
+                                <input id="ordenMarca" type="text" placeholder="Freightliner">
+                            </label>
+
+                            <label>
+                                Mecanico
+                                <input id="ordenMecanico" type="text" list="ordenMecanicosList" placeholder="Juan Perez" required>
+                            </label>
+
+                            <label>
+                                Departamento
+                                <input id="ordenDepartamento" type="text" placeholder="Taller">
+                            </label>
+
+                            <label>
+                                Kilometraje
+                                <input id="ordenKilometraje" type="number" min="0" placeholder="184200">
+                            </label>
+                        </div>
+
+                        <div class="form-grid">
+                            <label>
+                                Prox. ser.
+                                <input id="ordenProximoServicio" type="text" placeholder="Cambio de aceite en 5,000 km">
+                            </label>
+
+                            <label>
+                                Tipo de vehiculo
+                                <select id="ordenTipoVehiculo">
+                                    <option value="Cabezal">Cabezal</option>
+                                    <option value="Camioneta">Camioneta</option>
+                                    <option value="Pickup">Pickup</option>
+                                    <option value="Camion">Camion</option>
+                                    <option value="Cerrado">Cerrado</option>
+                                    <option value="Moto">Moto</option>
+                                    <option value="Otros">Otros</option>
+                                </select>
+                            </label>
+                        </div>
+                    </div>
+
+                    <datalist id="ordenPlacasList"></datalist>
+                    <datalist id="ordenPilotosList"></datalist>
+                    <datalist id="ordenMecanicosList"></datalist>
+
+                    <div class="form-section">
+                        <h3>Trabajo realizado</h3>
+
+                        <div class="work-type-options">
+                            <label class="check-option">
+                                <input id="ordenManoMecanico" type="checkbox">
+                                <span>Mano de obra mecanico</span>
+                            </label>
+
+                            <label class="check-option">
+                                <input id="ordenManoElectronico" type="checkbox">
+                                <span>Electrico</span>
+                            </label>
+
+                            <label class="check-option">
+                                <input id="ordenManoPintura" type="checkbox">
+                                Enderezado y pintura
+                            </label>
+                        </div>
+
+                        <label>
+                            Trabajos realizados
+                            <textarea id="ordenTrabajos" rows="4" placeholder="Detalle de los trabajos realizados"></textarea>
+                        </label>
+
+                        <div class="parts-section">
+                            <div class="parts-section-title">Repuestos colocados</div>
+
+                            <div class="parts-picker">
+                                <label>
+                                    Buscar repuesto
+                                    <input id="ordenRepuestoBusqueda" type="text" list="ordenRepuestosInventarioList" placeholder="Filtro de aceite" autocomplete="off">
+                                </label>
+
+                                <label>
+                                    Existencia
+                                    <input id="ordenRepuestoExistencia" type="text" placeholder="0 unidades" readonly>
+                                </label>
+
+                                <label>
+                                    Cantidad
+                                    <input id="ordenRepuestoCantidad" type="text" value="1" placeholder="1, 1.5 o 1/2">
+                                </label>
+
+                                <button class="module-action parts-add-button" id="btnAgregarRepuestoOrden" type="button">
+                                    Agregar
+                                </button>
+                            </div>
+
+                            <datalist id="ordenRepuestosInventarioList"></datalist>
+
+                            <div class="parts-table-wrap">
+                                <table class="parts-table" aria-label="Repuestos colocados en la orden">
+                                    <thead>
+                                        <tr>
+                                            <th>Codigo</th>
+                                            <th>Repuesto</th>
+                                            <th>Existencia</th>
+                                            <th>Cantidad</th>
+                                            <th>Costo</th>
+                                            <th>Accion</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="tablaRepuestosOrden"></tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <label>
+                            Observaciones
+                            <textarea id="ordenObservaciones" rows="3" placeholder="Observaciones generales"></textarea>
+                        </label>
+
+                        <div class="form-grid">
+                            <label>
+                                Mano de obra total
+                                <span class="currency-field">
+                                    <span>Q</span>
+                                    <input id="ordenTotalManoObra" type="number" min="0" step="0.01" placeholder="0.00">
+                                </span>
+                            </label>
+
+                            <label>
+                                Total de repuestos
+                                <span class="currency-field">
+                                    <span>Q</span>
+                                    <input id="ordenTotalRepuestos" type="number" min="0" step="0.01" placeholder="0.00" readonly>
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <button class="module-action full" id="btnGuardarOrdenTrabajo" type="submit">
+                        Guardar orden
+                    </button>
+                </form>
+            </section>
+        </div>
+    </main>
+
+    <script src="../scripts/dashboard.js"></script>
+    <script src="../scripts/modules/ordenes-trabajo.js"></script>
+</body>
+
+</html>

@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Clientes | Taller Mecánico</title>
+    <link rel="stylesheet" href="../styles/styles.css">
+    <link rel="stylesheet" href="../styles/modules/pilotos.css">
+</head>
+
+<body class="dashboard-body">
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <h2>Taller</h2>
+
+            <button class="sidebar-toggle" id="sidebarToggle" type="button" aria-label="Contraer menu" aria-expanded="true">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M15 6l-6 6 6 6"></path>
+                </svg>
+            </button>
+        </div>
+
+        <nav class="sidebar-nav" aria-label="Menu principal">
+            <a class="nav-button" href="dashboard.html" data-tooltip="Inicio">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M3 11l9-7 9 7"></path>
+                        <path d="M5 10v10h14V10"></path>
+                        <path d="M10 20v-6h4v6"></path>
+                    </svg>
+                </span>
+                <span class="nav-label">Inicio</span>
+            </a>
+
+            <a class="nav-button" href="vehiculos.html" data-tooltip="Vehiculos">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M6 16h12l2-5H4l2 5z"></path>
+                        <path d="M7 16l-1.5 3"></path>
+                        <path d="M17 16l1.5 3"></path>
+                        <path d="M8 19h.01"></path>
+                        <path d="M16 19h.01"></path>
+                        <path d="M7 11l2-4h6l2 4"></path>
+                    </svg>
+                </span>
+                <span class="nav-label">Vehiculos</span>
+            </a>
+
+            <a class="nav-button" href="#" data-tooltip="Servicios">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M14.7 6.3a4 4 0 0 0-5 5L4 17v3h3l5.7-5.7a4 4 0 0 0 5-5l-3 3-2-2 3-3z"></path>
+                    </svg>
+                </span>
+                <span class="nav-label">Servicios</span>
+            </a>
+
+            <a class="nav-button active" href="pilotos.html" data-tooltip="Clientes">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"></path>
+                        <path d="M4 21a8 8 0 0 1 16 0"></path>
+                    </svg>
+                </span>
+                <span class="nav-label">Clientes</span>
+            </a>
+
+            <a class="nav-button" href="repuestos.html" data-tooltip="Repuestos">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M7 7h10v10H7z"></path>
+                        <path d="M4 10h3"></path>
+                        <path d="M17 10h3"></path>
+                        <path d="M10 4v3"></path>
+                        <path d="M14 17v3"></path>
+                    </svg>
+                </span>
+                <span class="nav-label">Repuestos</span>
+            </a>
+
+            <a class="nav-button" href="ordenes-trabajo.html" data-tooltip="Ordenes de Trabajo">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M7 3h10v18H7z"></path>
+                        <path d="M9 7h6"></path>
+                        <path d="M9 11h6"></path>
+                        <path d="M9 15h4"></path>
+                    </svg>
+                </span>
+                <span class="nav-label">Ordenes de Trabajo</span>
+            </a>
+
+            <a class="nav-button" href="#" data-tooltip="Mecanicos">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M16 21v-2a4 4 0 0 0-8 0v2"></path>
+                        <path d="M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"></path>
+                        <path d="M19 8l2 2-4 4-2-2 4-4z"></path>
+                    </svg>
+                </span>
+                <span class="nav-label">Mecanicos</span>
+            </a>
+        </nav>
+    </aside>
+
+    <main class="contenido">
+        <header class="dashboard-title">
+            <div>
+                <p>Administracion de clientes</p>
+                <h1>Clientes</h1>
+            </div>
+
+            <button class="module-action" id="btnNuevoPiloto" type="button">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M12 5v14"></path>
+                    <path d="M5 12h14"></path>
+                </svg>
+                Nuevo cliente
+            </button>
+        </header>
+
+        <section class="module-page">
+            <div class="vehicle-indicators">
+                <article class="vehicle-indicator">
+                    <span>Total registrados</span>
+                    <strong id="totalPilotos">0</strong>
+                </article>
+
+                <article class="vehicle-indicator vehicle-type-indicator">
+                    <span>Licencia</span>
+                    <select id="filtroTipoLicenciaPiloto">
+                        <option value="todos">Todas</option>
+                        <option value="A">Tipo A</option>
+                        <option value="B">Tipo B</option>
+                        <option value="C">Tipo C</option>
+                        <option value="M">Tipo M</option>
+                    </select>
+                </article>
+
+                <article class="vehicle-indicator">
+                    <span>Activos</span>
+                    <strong id="pilotosActivos">0</strong>
+                </article>
+
+                <article class="vehicle-indicator">
+                    <span>Disponibles</span>
+                    <strong id="pilotosDisponibles">0</strong>
+                </article>
+
+                <article class="vehicle-indicator">
+                    <span>Inactivos</span>
+                    <strong id="pilotosInactivos">0</strong>
+                </article>
+            </div>
+
+            <div class="vehicle-layout">
+                <section class="dashboard-panel vehicle-table-panel">
+                    <div class="vehicle-toolbar">
+                        <label class="search-box">
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <circle cx="11" cy="11" r="7"></circle>
+                                <path d="M16 16l4 4"></path>
+                            </svg>
+                            <input id="buscarPiloto" type="search" placeholder="Buscar por nombre, licencia o telefono">
+                        </label>
+
+                        <select id="filtroEstadoPiloto">
+                            <option value="todos">Todos</option>
+                            <option value="Activo">Activos</option>
+                            <option value="Disponible">Disponibles</option>
+                            <option value="Inactivo">Inactivos</option>
+                        </select>
+                    </div>
+
+                    <div class="vehicle-table-scroll">
+                        <table class="data-table vehicle-table">
+                            <thead>
+                                <tr>
+                                    <th>Nombre</th>
+                                    <th>Licencia</th>
+                                    <th>Telefono</th>
+                                    <th>Vehiculo asignado</th>
+                                    <th>Estado</th>
+                                    <th>Vence licencia</th>
+                                    <th>Detalle</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tablaPilotos"></tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+        </section>
+
+        <div class="vehicle-modal" id="modalPiloto" aria-hidden="true">
+            <div class="vehicle-modal-backdrop" data-close-pilot-modal></div>
+
+            <section class="dashboard-panel vehicle-form-panel vehicle-modal-card" role="dialog" aria-modal="true" aria-label="Registro de cliente">
+                <button class="modal-close" id="btnCerrarPiloto" type="button" aria-label="Cerrar registro de cliente">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M6 6l12 12"></path>
+                        <path d="M18 6L6 18"></path>
+                    </svg>
+                </button>
+
+                <div class="panel-header">
+                    <div>
+                        <p>Registro</p>
+                        <h2>Datos del cliente</h2>
+                    </div>
+                </div>
+
+                <form class="vehicle-form" id="formPiloto">
+                    <div class="form-section">
+                        <h3>Identificacion</h3>
+
+                        <label>
+                            Nombre completo
+                            <input id="pilotoNombre" type="text" placeholder="Luis Morales" required>
+                        </label>
+
+                        <div class="form-grid">
+                            <label>
+                                DPI
+                                <input id="pilotoDpi" type="text" placeholder="2194855720301">
+                            </label>
+
+                            <label>
+                                NIT
+                                <input id="pilotoNit" type="text" placeholder="81184085">
+                            </label>
+                        </div>
+
+                        <div class="form-grid">
+                            <label>
+                                Telefono
+                                <input id="pilotoTelefono" type="tel" placeholder="5555-1234" required>
+                            </label>
+
+                            <label>
+                                Correo
+                                <input id="pilotoCorreo" type="email" placeholder="cliente@empresa.com">
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>Licencia</h3>
+
+                        <div class="form-grid">
+                            <label>
+                                No. licencia
+                                <input id="pilotoLicencia" type="text" placeholder="A-123456" required>
+                            </label>
+
+                            <label>
+                                Tipo
+                                <select id="pilotoTipoLicencia" required>
+                                    <option value="A">Tipo A</option>
+                                    <option value="B">Tipo B</option>
+                                    <option value="C">Tipo C</option>
+                                    <option value="M">Tipo M</option>
+                                </select>
+                            </label>
+                        </div>
+
+                        <div class="form-grid">
+                            <label>
+                                Fecha de vencimiento
+                                <input id="pilotoVenceLicencia" type="date" required>
+                            </label>
+
+                            <label>
+                                Estado
+                                <select id="pilotoEstado">
+                                    <option value="Activo">Activo</option>
+                                    <option value="Disponible">Disponible</option>
+                                    <option value="Inactivo">Inactivo</option>
+                                </select>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <h3>Asignacion</h3>
+
+                        <label>
+                            Vehiculo asignado
+                            <input id="pilotoVehiculo" type="text" list="pilotoVehiculosList" placeholder="Pendiente de asignar" autocomplete="off">
+                            <datalist id="pilotoVehiculosList"></datalist>
+                        </label>
+
+                        <label>
+                            Direccion
+                            <input id="pilotoDireccion" type="text" placeholder="Ciudad de Guatemala">
+                        </label>
+
+                        <label>
+                            Contacto de emergencia
+                            <input id="pilotoEmergencia" type="text" placeholder="Maria Lopez - 5555-9876">
+                        </label>
+                    </div>
+
+                    <button class="module-action full" id="btnGuardarPiloto" type="submit">
+                        Guardar cliente
+                    </button>
+                </form>
+            </section>
+        </div>
+    </main>
+
+    <script src="../scripts/dashboard.js"></script>
+    <script src="../scripts/modules/pilotos.js"></script>
+</body>
+
+</html>
