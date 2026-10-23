@@ -13,10 +13,6 @@ if (!hasAuthenticatedUser()) {
 
 const sidebar = document.getElementById('sidebar');
 const sidebarToggle = document.getElementById('sidebarToggle');
-const tireSummaryList = document.getElementById('tireSummaryList');
-const tirePrev = document.getElementById('tirePrev');
-const tireNext = document.getElementById('tireNext');
-const tirePageLabel = document.getElementById('tirePageLabel');
 const tablaServiciosInicio = document.getElementById('tablaServiciosInicio');
 const sidebarStateKey = 'sidebarCollapsed';
 
@@ -25,6 +21,7 @@ if (sidebar && sidebarToggle) {
     const startsCollapsed = savedSidebarState === 'true';
 
     sidebar.classList.toggle('collapsed', startsCollapsed);
+    document.documentElement.toggleAttribute('data-sidebar-collapsed', startsCollapsed);
     sidebarToggle.setAttribute(
         'aria-label',
         startsCollapsed ? 'Expandir menu' : 'Contraer menu'
@@ -35,6 +32,7 @@ if (sidebar && sidebarToggle) {
         const isCollapsed = sidebar.classList.toggle('collapsed');
 
         localStorage.setItem(sidebarStateKey, String(isCollapsed));
+        document.documentElement.toggleAttribute('data-sidebar-collapsed', isCollapsed);
         sidebarToggle.setAttribute(
             'aria-label',
             isCollapsed ? 'Expandir menu' : 'Contraer menu'
@@ -43,205 +41,48 @@ if (sidebar && sidebarToggle) {
     });
 }
 
-const tires = [
-    {
-        plate: 'C-842BVK',
-        position: 'Delantera izquierda',
-        life: 18,
-        status: 'critical'
-    },
-    {
-        plate: 'C-377KLM',
-        position: 'Trasera derecha',
-        life: 32,
-        status: 'warning'
-    },
-    {
-        plate: 'P-190FRT',
-        position: 'Juego trasero',
-        life: 64,
-        status: 'good'
-    },
-    {
-        plate: 'C-555NQP',
-        position: 'Delantera derecha',
-        life: 24,
-        status: 'critical'
-    },
-    {
-        plate: 'P-728DHS',
-        position: 'Trasera izquierda',
-        life: 41,
-        status: 'warning'
-    },
-    {
-        plate: 'C-901LPA',
-        position: 'Juego delantero',
-        life: 72,
-        status: 'good'
-    }
-];
 
-const tiresPerPage = 4;
-let tirePage = 0;
-
-const serviciosProximos = [
-    {
-        placa: 'C-842BVK',
-        vehiculo: 'Freightliner M2',
-        servicio: 'Cambio de aceite',
-        fechaUltimoServicio: '28/05/2026',
-        kilometrosRestantes: 450,
-        estado: 'Urgente',
-        prioridad: 'high'
-    },
-    {
-        placa: 'P-190FRT',
-        vehiculo: 'Hino 500',
-        servicio: 'Frenos delanteros',
-        fechaUltimoServicio: '30/05/2026',
-        kilometrosRestantes: 820,
-        estado: 'Proximo',
-        prioridad: 'medium'
-    },
-    {
-        placa: 'C-377KLM',
-        vehiculo: 'International 4300',
-        servicio: 'Alineacion',
-        fechaUltimoServicio: '03/06/2026',
-        kilometrosRestantes: 1250,
-        estado: 'Programado',
-        prioridad: 'normal'
-    },
-    {
-        placa: 'C-555NQP',
-        vehiculo: 'Kenworth T370',
-        servicio: 'Filtro de combustible',
-        fechaUltimoServicio: '06/06/2026',
-        kilometrosRestantes: 2100,
-        estado: 'Programado',
-        prioridad: 'normal'
-    },
-    {
-        placa: 'P-728DHS',
-        vehiculo: 'Isuzu NPR',
-        servicio: 'Revision general',
-        fechaUltimoServicio: '09/06/2026',
-        kilometrosRestantes: 1650,
-        estado: 'Proximo',
-        prioridad: 'medium'
-    },
-    {
-        placa: 'C-901LPA',
-        vehiculo: 'Volvo VM',
-        servicio: 'Cambio de llantas',
-        fechaUltimoServicio: '11/06/2026',
-        kilometrosRestantes: 280,
-        estado: 'Urgente',
-        prioridad: 'high'
-    },
-    {
-        placa: 'P-440MDR',
-        vehiculo: 'Mitsubishi Fuso',
-        servicio: 'Servicio de suspension',
-        fechaUltimoServicio: '13/06/2026',
-        kilometrosRestantes: 3400,
-        estado: 'Programado',
-        prioridad: 'normal'
-    },
-    {
-        placa: 'C-118QWE',
-        vehiculo: 'Scania P250',
-        servicio: 'Revision de bateria',
-        fechaUltimoServicio: '15/06/2026',
-        kilometrosRestantes: 1100,
-        estado: 'Proximo',
-        prioridad: 'medium'
-    },
-    {
-        placa: 'C-763RST',
-        vehiculo: 'Mercedes Atego',
-        servicio: 'Cambio de aceite',
-        fechaUltimoServicio: '18/06/2026',
-        kilometrosRestantes: 2850,
-        estado: 'Programado',
-        prioridad: 'normal'
-    },
-    {
-        placa: 'P-315ZXC',
-        vehiculo: 'Hino Dutro',
-        servicio: 'Freno trasero',
-        fechaUltimoServicio: '20/06/2026',
-        kilometrosRestantes: 390,
-        estado: 'Urgente',
-        prioridad: 'high'
-    },
-    {
-        placa: 'C-640BNM',
-        vehiculo: 'Kenworth T680',
-        servicio: 'Alineacion y balanceo',
-        fechaUltimoServicio: '24/06/2026',
-        kilometrosRestantes: 970,
-        estado: 'Proximo',
-        prioridad: 'medium'
-    }
-];
-
-function renderTires() {
-    const totalPages = Math.ceil(tires.length / tiresPerPage);
-    const start = tirePage * tiresPerPage;
-    const currentTires = tires.slice(start, start + tiresPerPage);
-
-    tireSummaryList.innerHTML = currentTires.map((tire) => `
-        <article class="tire-summary-item ${tire.status}">
-            <strong>${tire.plate}</strong>
-            <span>${tire.life}%</span>
-            <small>${tire.position}</small>
-        </article>
-    `).join('');
-
-    tirePageLabel.innerText = `${tirePage + 1} / ${totalPages}`;
-    tirePrev.disabled = tirePage === 0;
-    tireNext.disabled = tirePage === totalPages - 1;
-}
-
-if (tireSummaryList && tirePrev && tireNext && tirePageLabel) {
-    tirePrev.addEventListener('click', () => {
-        if (tirePage > 0) {
-            tirePage -= 1;
-            renderTires();
+async function cargarDashboard() {
+    if (!tablaServiciosInicio) return;
+    try {
+        const data = await window.api.dashboard.get();
+        // Una ventana recargada puede convivir con un proceso principal anterior.
+        // Si falta el contador nuevo, obtenerlo de las ordenes persistidas.
+        if (data.enTaller == null) {
+            const ordenes = await window.api.ordenes.list();
+            data.enTaller = ordenes.filter(orden => ['Espera', 'Activa', 'Abierta', 'En proceso', 'Finalizada'].includes(orden.estado)).length;
         }
-    });
-
-    tireNext.addEventListener('click', () => {
-        const totalPages = Math.ceil(tires.length / tiresPerPage);
-
-        if (tirePage < totalPages - 1) {
-            tirePage += 1;
-            renderTires();
+        for (const key of ['vehiculos', 'proximos', 'vencidos', 'enTaller']) {
+            document.getElementById('indicador-' + key).textContent = data[key] ?? '--';
         }
-    });
-
-    renderTires();
+        tablaServiciosInicio.replaceChildren(...data.servicios.map(servicio => {
+            const tr = document.createElement('tr');
+            if (servicio.estado_alerta === 'Servicio pasado') tr.classList.add('maintenance-overdue');
+            const valores = [servicio.placa, servicio.vehiculo, servicio.servicio, servicio.fecha_proximo_servicio,
+                servicio.dias_restantes == null ? 'Sin fecha' : servicio.dias_restantes < 0 ? `Vencido hace ${Math.abs(servicio.dias_restantes)} dias` : servicio.dias_restantes === 0 ? 'Hoy' : `${servicio.dias_restantes} dias`,
+                servicio.kilometraje_proximo == null ? 'Sin referencia' : `${Number(servicio.kilometraje_proximo).toLocaleString()} km`,
+                servicio.kilometros_restantes == null ? 'Sin referencia' : servicio.kilometros_restantes < 0 ? `Excedido por ${Math.abs(servicio.kilometros_restantes).toLocaleString()} km` : `${Number(servicio.kilometros_restantes).toLocaleString()} km`, servicio.estado_alerta === 'Proximo' ? 'Próximo' : servicio.estado_alerta];
+            valores.forEach((valor, index) => {
+                const td = document.createElement('td');
+                if (index === valores.length - 1) {
+                    const estado = document.createElement('span');
+                    const colores = {Pendiente: 'pending', Proximo: 'upcoming', Urgente: 'urgent', 'Servicio pasado': 'urgent'};
+                    estado.className = `maintenance-status ${colores[servicio.estado_alerta] || ''}`;
+                    estado.textContent = valor; td.append(estado);
+                } else td.textContent = valor ?? '';
+                tr.append(td);
+            });
+            return tr;
+        }));
+        document.getElementById('dashboardMensaje').textContent = data.servicios.length ? '' : 'No hay mantenimientos programados.';
+    } catch (error) {
+        for (const key of ['vehiculos', 'proximos', 'vencidos', 'enTaller']) document.getElementById('indicador-' + key).textContent = '--';
+        tablaServiciosInicio.replaceChildren();
+        document.getElementById('dashboardMensaje').textContent = `No se pudo cargar el panel: ${error.message}`;
+    }
 }
-
-function formatKilometros(value) {
-    return `${Number(value || 0).toLocaleString('en-US')} km`;
-}
-
-function renderServiciosInicio() {
-    tablaServiciosInicio.innerHTML = serviciosProximos.map((servicio) => `
-        <tr>
-            <td>${servicio.placa}</td>
-            <td>${servicio.vehiculo}</td>
-            <td>${servicio.servicio}</td>
-            <td>${servicio.fechaUltimoServicio}</td>
-            <td>${formatKilometros(servicio.kilometrosRestantes)}</td>
-            <td><span class="status ${servicio.prioridad}">${servicio.estado}</span></td>
-        </tr>
-    `).join('');
-}
-
 if (tablaServiciosInicio) {
-    renderServiciosInicio();
+    cargarDashboard();
+    setInterval(cargarDashboard, 60000);
+    window.addEventListener('focus', cargarDashboard);
 }

@@ -232,9 +232,9 @@
 .vehicle-form{
     padding:10px 16px 16px;
     display:grid;
-    grid-template-columns:0.95fr 1.2fr 1.35fr;
+    grid-template-columns:repeat(3, minmax(0, 1fr));
     gap:12px;
-    align-items:start;
+    align-items:stretch;
 }
 
 .vehicle-form .module-action.full{
@@ -247,6 +247,7 @@
 }
 
 .form-section{
+    min-width:0;
     padding:10px;
     border:1px solid rgba(255,255,255,0.08);
     border-radius:12px;
@@ -264,6 +265,7 @@
 }
 
 .vehicle-form label{
+    min-width:0;
     color:#cbd5e1;
     display:flex;
     flex-direction:column;
@@ -281,7 +283,8 @@
 
 .form-grid{
     display:grid;
-    grid-template-columns:1fr 1fr;
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+    align-items:stretch;
     gap:8px;
 }
 
@@ -338,3 +341,51 @@
         overflow:auto;
     }
 }
+
+/* Campos alineados y con dimensiones uniformes en la tarjeta de circulacion. */
+.vehicle-form .form-grid.single{
+    grid-template-columns:minmax(0, 1fr);
+}
+.vehicle-form input,
+.vehicle-form select{
+    min-width:0;
+    height:36px;
+    margin-top:auto;
+    flex-shrink:0;
+}
+.vehicle-modal-card .panel-header h2{
+    overflow-wrap:anywhere;
+}
+
+.vehicle-state-control{ flex:0 0 auto; margin-left:auto; }
+.vehicle-state-control[hidden]{ display:none; }
+
+.vehicle-modal-card .panel-header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    flex-wrap:wrap;
+    gap:12px;
+}
+.vehicle-modal-card .panel-header > div:first-child{ min-width:0; flex:1 1 260px; }
+.vehicle-state-toggle{
+    min-width:100px;
+    min-height:30px;
+    padding:6px 16px;
+    border:1px solid transparent;
+    border-radius:999px;
+    font:inherit;
+    font-size:12px;
+    font-weight:700;
+    cursor:pointer;
+}
+.vehicle-state-toggle.is-danger{ background:rgba(248,113,113,.20); color:#fecaca; border-color:rgba(248,113,113,.25); }
+.vehicle-state-toggle.is-success{ background:rgba(74,222,128,.18); color:#bbf7d0; border-color:rgba(74,222,128,.25); }
+.vehicle-state-toggle:hover{ filter:brightness(1.15); }
+.vehicle-state-toggle:focus-visible{ outline:2px solid #bae6fd; outline-offset:3px; }
+.vehicle-state-toggle:disabled{ opacity:.6; cursor:wait; }
+
+.vehicle-mileage { display:flex; align-items:center; gap:8px; white-space:nowrap; }
+.vehicle-mileage .icon-action { flex-shrink:0; }
+.vehicle-mileage input { width:110px; padding:7px; border:1px solid #475569; border-radius:8px; background:#192233; color:#f8fafc; }
+.mileage-action { padding:6px 8px; border:1px solid #475569; border-radius:8px; background:#243b50; color:#bae6fd; cursor:pointer; }

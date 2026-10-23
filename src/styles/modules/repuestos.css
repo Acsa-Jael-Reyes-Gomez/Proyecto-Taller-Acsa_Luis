@@ -67,6 +67,10 @@
     grid-row:span 2;
 }
 
+.repuestos-grid.is-expanded{grid-template-columns:minmax(0, 1fr)}
+.ultimos-ingresos-panel[hidden]{display:none}
+.repuestos-grid.is-expanded .repuestos-main-panel{grid-row:auto}
+
 .repuestos-toolbar{
     padding:12px 14px;
     display:flex;
@@ -116,12 +120,12 @@
 
 .movimiento-form input,
 .repuesto-form input{
-    height:34px;
+    height:32px;
     padding:0 10px;
 }
 
 .movimiento-form textarea{
-    min-height:76px;
+    min-height:64px;
     padding:9px 10px;
     resize:vertical;
 }
@@ -167,6 +171,12 @@
     gap:10px;
 }
 
+.movement-workspace{
+    width:100%;
+    max-width:720px;
+    margin:0 auto;
+}
+
 .movimiento-form label,
 .repuesto-form label{
     color:#cbd5e1;
@@ -175,7 +185,14 @@
     gap:5px;
     font-size:12px;
     font-weight:800;
+    width:100%;
+    min-width:0;
+    text-align:left;
+    align-items:stretch;
 }
+
+.movimiento-form .form-grid,
+.repuesto-form .form-grid{grid-template-columns:repeat(2, minmax(0, 1fr))}
 
 .form-grid{
     display:grid;
@@ -289,7 +306,9 @@
 }
 
 @media (max-width:680px){
-    .form-grid{
+    .form-grid,
+    .movimiento-form .form-grid,
+    .repuesto-form .form-grid{
         grid-template-columns:1fr;
     }
 }

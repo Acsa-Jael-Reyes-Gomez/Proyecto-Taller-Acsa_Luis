@@ -1,22 +1,25 @@
-﻿const tablaVehiculos = document.getElementById('tablaVehiculos');
+const tablaVehiculos = document.getElementById('tablaVehiculos');
 const buscarVehiculo = document.getElementById('buscarVehiculo');
 const filtroEstadoVehiculo = document.getElementById('filtroEstadoVehiculo');
 const filtroTipoIndicador = document.getElementById('filtroTipoIndicador');
 const formVehiculo = document.getElementById('formVehiculo');
-const btnNuevoVehiculo = document.getElementById('btnNuevoVehiculo');
 const modalVehiculo = document.getElementById('modalVehiculo');
 const btnCerrarVehiculo = document.getElementById('btnCerrarVehiculo');
 const btnGuardarVehiculo = document.getElementById('btnGuardarVehiculo');
 const totalVehiculos = document.getElementById('totalVehiculos');
 const vehiculosActivos = document.getElementById('vehiculosActivos');
-const vehiculosTaller = document.getElementById('vehiculosTaller');
 const vehiculosInactivos = document.getElementById('vehiculosInactivos');
 const formFields = Array.from(formVehiculo.querySelectorAll('input, select'));
 const vehiculoPlaca = document.getElementById('vehiculoPlaca');
+const btnCambiarEstadoVehiculo = document.getElementById('btnCambiarEstadoVehiculo');
 
 let modoRegistroVehiculo = 'nuevo';
 let vehiculoSeleccionadoId = null;
 let vehiculos = [];
+let clientesDisponibles = [];
+let estadoCargaVehiculos = 'Cargando datos...';
+const clienteContextoId = Number(new URLSearchParams(window.location.search).get('cliente')) || null;
+let guardandoVehiculo = false;
 
 function getEstadoClass(estado) {
     if (estado === 'Activo') {
@@ -39,7 +42,7 @@ function getFieldValue(id) {
 }
 
 function setFieldValue(id, value = '') {
-    document.getElementById(id).value = value || '';
+    document.getElementById(id).value = value ?? '';
 }
 
 function formatVehiclePlateInput(value) {
@@ -54,6 +57,16 @@ function formatVehiclePlateInput(value) {
     }
 
     return normalized;
+}
+
+// El buscador admite placas, nombres y modelos sin alterar sus espacios.
+function formatVehicleSearchInput(value, deleting = false) {
+    let text = value.replace(/^(\p{L})-(?=[\p{L}\s])/u, '$1');
+    if (/^\p{L}$/u.test(text) && !deleting) return `${text.toUpperCase()}-`;
+    if (/^\p{L}-?\d/u.test(text)) {
+        text = text.replace(/^(\p{L})-?(?=\d)/u, (_, letter) => `${letter.toUpperCase()}-`);
+    }
+    return text;
 }
 
 function applyVehiclePlateFormat(input) {
@@ -76,13 +89,27 @@ function setRegistroSoloLectura(isReadOnly) {
     });
 
     btnGuardarVehiculo.hidden = isReadOnly;
+    actualizarControlEstadoVehiculo();
     modalVehiculo.classList.toggle('is-readonly', isReadOnly);
 }
 
 function limpiarRegistroVehiculo() {
     formVehiculo.reset();
+    document.getElementById('vehiculoKilometraje').readOnly = false;
+    document.getElementById('vehiculoKilometraje').title = '';
     vehiculoSeleccionadoId = null;
+    validarKilometrajeVehiculo();
 }
+
+function validarKilometrajeVehiculo() {
+    const input = document.getElementById('vehiculoKilometraje');
+    const registrado = vehiculos.find(item => item.id === vehiculoSeleccionadoId)?.kilometraje;
+    const alerta = input.value !== '' && registrado != null && Number(input.value) < Number(registrado)
+        ? `El kilometraje no puede ser menor al ya registrado (${registrado} km).` : '';
+    input.setCustomValidity(alerta);
+    document.getElementById('vehiculoKmValidacion').textContent = alerta;
+}
+document.getElementById('vehiculoKilometraje').addEventListener('input', validarKilometrajeVehiculo);
 
 function abrirRegistroVehiculo() {
     const veniaDeVista = modoRegistroVehiculo !== 'nuevo';
@@ -101,9 +128,13 @@ function abrirRegistroVehiculo() {
 }
 
 function ocultarRegistroVehiculo() {
+    if (clienteContextoId) {
+        window.location.href = `pilotos.html?cliente=${encodeURIComponent(clienteContextoId)}`;
+        return;
+    }
     modalVehiculo.classList.remove('is-open');
     modalVehiculo.setAttribute('aria-hidden', 'true');
-    btnNuevoVehiculo.focus();
+    buscarVehiculo.focus();
 }
 
 function getVehiculoFormulario() {
@@ -111,19 +142,16 @@ function getVehiculoFormulario() {
 
     return {
         placa: formatVehiclePlateInput(getFieldValue('vehiculoPlaca')),
-        noTarjeta: getFieldValue('vehiculoTarjeta'),
         nit: getFieldValue('vehiculoNit'),
         cui: getFieldValue('vehiculoCui'),
         propietario: getFieldValue('vehiculoPropietario'),
-        piloto: getFieldValue('vehiculoPiloto') || 'Sin asignar',
+        idCliente: vehiculoActual?.idCliente || clienteContextoId,
+        nivelUso: getFieldValue('vehiculoNivelUso'),
         uso: document.getElementById('vehiculoUso').value,
         tipo: document.getElementById('vehiculoTipo').value,
         marca: getFieldValue('vehiculoMarca'),
         linea: getFieldValue('vehiculoLinea'),
-        modelo: [getFieldValue('vehiculoMarca'), getFieldValue('vehiculoLinea')]
-            .filter(Boolean)
-            .join(' ') || getFieldValue('vehiculoModelo'),
-        modeloRegistro: getFieldValue('vehiculoModelo'),
+        modelo: getFieldValue('vehiculoModelo'),
         color: getFieldValue('vehiculoColor'),
         chasis: getFieldValue('vehiculoChasis'),
         serie: getFieldValue('vehiculoSerie'),
@@ -135,33 +163,36 @@ function getVehiculoFormulario() {
         cc: Number(getFieldValue('vehiculoCc')) || 0,
         tonelaje: Number(getFieldValue('vehiculoTonelaje')) || 0,
         estado: modoRegistroVehiculo === 'edicion' ? vehiculoActual?.estado || 'Activo' : 'Activo',
-        kilometraje: Number(getFieldValue('vehiculoKilometraje')) || 0
+        kilometraje: getFieldValue('vehiculoKilometraje')
     };
 }
 
 function cargarVehiculoEnFormulario(vehiculo) {
     setFieldValue('vehiculoPlaca', vehiculo.placa);
-    setFieldValue('vehiculoTarjeta', vehiculo.noTarjeta);
     setFieldValue('vehiculoNit', vehiculo.nit);
     setFieldValue('vehiculoCui', vehiculo.cui);
     setFieldValue('vehiculoPropietario', vehiculo.propietario);
-    setFieldValue('vehiculoPiloto', vehiculo.piloto);
-    setFieldValue('vehiculoUso', vehiculo.uso || 'Particular');
-    setFieldValue('vehiculoTipo', vehiculo.tipo || 'Camion');
+    mostrarClienteEnEncabezado(vehiculo.idCliente, vehiculo.cliente);
+    setFieldValue('vehiculoUso', vehiculo.uso);
+    setFieldValue('vehiculoNivelUso', vehiculo.nivelUso);
+    setFieldValue('vehiculoTipo', vehiculo.tipo);
     setFieldValue('vehiculoMarca', vehiculo.marca);
     setFieldValue('vehiculoLinea', vehiculo.linea);
-    setFieldValue('vehiculoModelo', vehiculo.modeloRegistro || vehiculo.modelo);
+    setFieldValue('vehiculoModelo', vehiculo.modelo);
     setFieldValue('vehiculoColor', vehiculo.color);
     setFieldValue('vehiculoChasis', vehiculo.chasis);
     setFieldValue('vehiculoSerie', vehiculo.serie);
     setFieldValue('vehiculoVin', vehiculo.vin);
     setFieldValue('vehiculoMotor', vehiculo.motor);
-    setFieldValue('vehiculoAsientos', vehiculo.asientos || '');
-    setFieldValue('vehiculoEjes', vehiculo.ejes || '');
-    setFieldValue('vehiculoCilindros', vehiculo.cilindros || '');
-    setFieldValue('vehiculoCc', vehiculo.cc || '');
-    setFieldValue('vehiculoTonelaje', vehiculo.tonelaje || '');
-    setFieldValue('vehiculoKilometraje', vehiculo.kilometraje || '');
+    setFieldValue('vehiculoAsientos', vehiculo.asientos ?? '');
+    setFieldValue('vehiculoEjes', vehiculo.ejes ?? '');
+    setFieldValue('vehiculoCilindros', vehiculo.cilindros ?? '');
+    setFieldValue('vehiculoCc', vehiculo.cc ?? '');
+    setFieldValue('vehiculoTonelaje', vehiculo.tonelaje ?? '');
+    setFieldValue('vehiculoKilometraje', vehiculo.kilometraje ?? '');
+    document.getElementById('vehiculoKilometraje').readOnly = Boolean(vehiculo.kilometrajeBloqueado);
+    validarKilometrajeVehiculo();
+    document.getElementById('vehiculoKilometraje').title = vehiculo.kilometrajeBloqueado ? 'Kilometraje bloqueado por una orden pendiente de entrega.' : '';
 }
 
 function verDetalleVehiculo(index) {
@@ -196,6 +227,10 @@ function editarVehiculo(index) {
     vehiculoPlaca.focus();
 }
 
+function normalizarTipoVehiculo(tipo) {
+    return String(tipo || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLowerCase();
+}
+
 function getVehiculosPorTipoIndicador() {
     const tipo = filtroTipoIndicador.value;
 
@@ -203,33 +238,33 @@ function getVehiculosPorTipoIndicador() {
         return vehiculos;
     }
 
-    return vehiculos.filter((vehiculo) => vehiculo.tipo === tipo);
+    return vehiculos.filter((vehiculo) => normalizarTipoVehiculo(vehiculo.tipo) === normalizarTipoVehiculo(tipo));
 }
 
 function renderIndicadoresVehiculos() {
+    if (estadoCargaVehiculos) { mostrarEstadoCargaVehiculos(); return; }
     const vehiculosIndicador = getVehiculosPorTipoIndicador();
 
     totalVehiculos.innerText = vehiculosIndicador.length;
     vehiculosActivos.innerText = vehiculosIndicador.filter((vehiculo) => vehiculo.estado === 'Activo').length;
-    vehiculosTaller.innerText = vehiculosIndicador.filter((vehiculo) => vehiculo.estado === 'En taller').length;
     vehiculosInactivos.innerText = vehiculosIndicador.filter((vehiculo) => vehiculo.estado === 'Inactivo').length;
 }
 
 function getVehiculosFiltrados() {
-    const busqueda = buscarVehiculo.value.trim().toLowerCase();
+    const textoBusqueda = buscarVehiculo.value.trim().replace(/^(\p{L})-$/u, '$1');
+    const busqueda = normalizarTipoVehiculo(textoBusqueda);
     const estado = filtroEstadoVehiculo.value;
 
-    return vehiculos.filter((vehiculo) => {
+    return getVehiculosPorTipoIndicador().filter((vehiculo) => {
         const coincideBusqueda = [
             vehiculo.placa,
             vehiculo.tipo,
             vehiculo.modelo,
             vehiculo.marca,
             vehiculo.linea,
-            vehiculo.piloto,
+            vehiculo.cliente,
             vehiculo.propietario,
-            vehiculo.noTarjeta
-        ].filter(Boolean).some((valor) => String(valor).toLowerCase().includes(busqueda));
+        ].filter(Boolean).some((valor) => normalizarTipoVehiculo(valor).includes(busqueda));
         const coincideEstado = estado === 'todos' || vehiculo.estado === estado;
 
         return coincideBusqueda && coincideEstado;
@@ -264,16 +299,18 @@ function compareVehiculosPorPlaca(vehiculoA, vehiculoB) {
 }
 
 function renderVehiculos() {
+    if (estadoCargaVehiculos) { mostrarEstadoCargaVehiculos(); return; }
     const vehiculosFiltrados = getVehiculosFiltrados();
 
     tablaVehiculos.innerHTML = vehiculosFiltrados.map((vehiculo, index) => `
         <tr>
-            <td>${vehiculo.placa}</td>
-            <td>${vehiculo.tipo}</td>
-            <td>${vehiculo.modelo}</td>
-            <td>${vehiculo.piloto || 'Sin asignar'}</td>
-            <td><span class="status ${getEstadoClass(vehiculo.estado)}">${vehiculo.estado}</span></td>
-            <td>${formatKilometraje(vehiculo.kilometraje)}</td>
+            <td>${escapeVehicleText(vehiculo.placa)}</td>
+            <td>${escapeVehicleText(vehiculo.marca || '')}</td>
+            <td>${escapeVehicleText(vehiculo.linea || '')}</td>
+            <td>${escapeVehicleText(vehiculo.modelo || '')}</td>
+            <td>${escapeVehicleText(vehiculo.tipo || '')}</td>
+            <td>${escapeVehicleText(vehiculo.cliente || 'Sin cliente')}</td>
+            <td><div class="vehicle-mileage"><span>${formatKilometraje(vehiculo.kilometraje)}</span><button class="icon-action js-kilometraje-vehiculo" type="button" data-id="${vehiculo.id}" ${vehiculo.kilometrajeBloqueado ? 'disabled title="Bloqueado por una orden pendiente de entrega"' : 'title="Actualizar kilometraje"'} aria-label="Actualizar kilometraje"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></button></div></td>
             <td class="vehicle-actions-cell">
                 <div class="table-actions vehicle-actions">
                     <button class="icon-action js-ver-vehiculo" type="button" data-index="${index}" aria-label="Ver detalle de ${vehiculo.placa}">
@@ -305,7 +342,7 @@ function renderVehiculos() {
     if (vehiculosFiltrados.length === 0) {
         tablaVehiculos.innerHTML = `
             <tr>
-                <td colspan="7" class="empty-row">No hay vehiculos con esos filtros.</td>
+                <td colspan="8" class="empty-row">No hay vehiculos con esos filtros.</td>
             </tr>
         `;
     }
@@ -314,23 +351,35 @@ function renderVehiculos() {
 }
 
 async function cargarVehiculos() {
+    estadoCargaVehiculos = 'Cargando datos...';
+    mostrarEstadoCargaVehiculos();
     try {
-        vehiculos = await window.api.vehiculos.list();
+        [vehiculos, clientesDisponibles] = await Promise.all([window.api.vehiculos.list(), window.api.pilotos.list()]);
+        estadoCargaVehiculos = null;
         renderVehiculos();
+        return true;
     } catch (error) {
-        alert(`No se pudieron cargar los vehiculos: ${error.message}`);
+        vehiculos = []; clientesDisponibles = [];
+        estadoCargaVehiculos = 'No se pudieron cargar los datos. Revisa la conexion y vuelve a abrir el modulo.';
+        mostrarEstadoCargaVehiculos();
+        window.ui.alert(`No se pudieron cargar los vehiculos: ${error.message}`);
+        return false;
     }
 }
 
 formVehiculo.addEventListener('submit', async (event) => {
     event.preventDefault();
 
-    if (modoRegistroVehiculo === 'vista') {
+    if (modoRegistroVehiculo === 'vista' || guardandoVehiculo) {
         return;
     }
 
     try {
+        if (!formVehiculo.reportValidity()) return;
         const vehiculo = getVehiculoFormulario();
+        if (!vehiculo.idCliente) throw new Error('Abre el registro del vehiculo desde la ficha de un cliente.');
+        guardandoVehiculo = true;
+        btnGuardarVehiculo.disabled = true;
 
         if (modoRegistroVehiculo === 'edicion' && vehiculoSeleccionadoId) {
             await window.api.vehiculos.update(vehiculoSeleccionadoId, vehiculo);
@@ -338,11 +387,18 @@ formVehiculo.addEventListener('submit', async (event) => {
             await window.api.vehiculos.create(vehiculo);
         }
 
+        if (clienteContextoId) {
+            window.location.href = `pilotos.html?cliente=${encodeURIComponent(clienteContextoId)}`;
+            return;
+        }
         limpiarRegistroVehiculo();
         await cargarVehiculos();
         ocultarRegistroVehiculo();
     } catch (error) {
-        alert(`No se pudo guardar el vehiculo: ${error.message}`);
+        window.ui.alert(`No se pudo guardar el vehiculo: ${error.message}`);
+    } finally {
+        guardandoVehiculo = false;
+        btnGuardarVehiculo.disabled = false;
     }
 });
 
@@ -373,24 +429,33 @@ function handleVehiclePlateKeydown(event) {
 }
 
 vehiculoPlaca.addEventListener('keydown', handleVehiclePlateKeydown);
-buscarVehiculo.addEventListener('keydown', handleVehiclePlateKeydown);
 vehiculoPlaca.addEventListener('input', () => {
     applyVehiclePlateFormat(vehiculoPlaca);
 });
-buscarVehiculo.addEventListener('input', () => {
-    applyVehiclePlateFormat(buscarVehiculo);
+buscarVehiculo.addEventListener('input', (event) => {
+    if (!event.isComposing) {
+        const before = buscarVehiculo.value;
+        const cursor = buscarVehiculo.selectionStart ?? before.length;
+        const formatted = formatVehicleSearchInput(before, event.inputType?.startsWith('delete'));
+        if (formatted !== before) {
+            buscarVehiculo.value = formatted;
+            const position = cursor === 0 ? 0 : Math.max(0, Math.min(formatted.length, cursor + formatted.length - before.length));
+            buscarVehiculo.setSelectionRange?.(position, position);
+        }
+    }
     renderVehiculos();
 });
 filtroEstadoVehiculo.addEventListener('change', renderVehiculos);
-filtroTipoIndicador.addEventListener('change', renderIndicadoresVehiculos);
-btnNuevoVehiculo.addEventListener('click', abrirRegistroVehiculo);
+filtroTipoIndicador.addEventListener('change', renderVehiculos);
 btnCerrarVehiculo.addEventListener('click', ocultarRegistroVehiculo);
 modalVehiculo.addEventListener('click', (event) => {
     if (event.target.hasAttribute('data-close-vehicle-modal')) {
         event.preventDefault();
     }
 });
-tablaVehiculos.addEventListener('click', (event) => {
+tablaVehiculos.addEventListener('click', async (event) => {
+    const kilometrajeButton = event.target.closest('.js-kilometraje-vehiculo');
+    if (kilometrajeButton) { editarKilometrajeFila(kilometrajeButton); return; }
     const detailButton = event.target.closest('.js-ver-vehiculo');
     const editButton = event.target.closest('.js-editar-vehiculo');
     const deleteButton = event.target.closest('.js-eliminar-vehiculo');
@@ -403,10 +468,10 @@ tablaVehiculos.addEventListener('click', (event) => {
         editarVehiculo(Number(editButton.dataset.index));
     }
 
-    if (deleteButton && confirm('Desea eliminar este vehiculo?')) {
+    if (deleteButton && await window.ui.confirm('Desea eliminar este vehiculo?', { title: 'Eliminar registro', confirmText: 'Eliminar', danger: true })) {
         window.api.vehiculos.remove(Number(deleteButton.dataset.id))
             .then(cargarVehiculos)
-            .catch((error) => alert(`No se pudo eliminar el vehiculo: ${error.message}`));
+            .catch((error) => window.ui.alert(`No se pudo eliminar el vehiculo: ${error.message}`));
     }
 });
 document.addEventListener('keydown', (event) => {
@@ -415,4 +480,109 @@ document.addEventListener('keydown', (event) => {
     }
 });
 
-cargarVehiculos();
+cargarVehiculos().then(async cargado => {
+    if (!cargado) return;
+    if (!clienteContextoId) return;
+    const cliente = clientesDisponibles.find(c => c.id === clienteContextoId);
+    if (!cliente) {
+        await window.ui.alert('No se encontro el cliente. Vuelve a Clientes y selecciona un registro existente.');
+        window.location.href = 'pilotos.html';
+        return;
+    }
+    abrirRegistroVehiculo();
+    mostrarClienteEnEncabezado(cliente.id, cliente.nombre);
+});
+
+function escapeVehicleText(value) {
+    return String(value).replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character]));
+}
+
+function mostrarClienteEnEncabezado(idCliente, nombre = '') {
+    const cliente = clientesDisponibles.find(item => item.id === idCliente);
+    document.getElementById('vehiculoEncabezado').textContent =
+        `Datos del vehiculo - ${cliente?.nombre || nombre || 'Sin cliente vinculado'}`;
+}
+
+function mostrarEstadoCargaVehiculos() {
+    tablaVehiculos.innerHTML = '<tr><td colspan="8" class="empty-row"></td></tr>';
+    tablaVehiculos.querySelector('td').textContent = estadoCargaVehiculos;
+    [totalVehiculos, vehiculosActivos, vehiculosInactivos].forEach(indicador => { indicador.innerText = '--'; });
+}
+
+function actualizarControlEstadoVehiculo() {
+    const vehiculo = vehiculos.find(item => item.id === vehiculoSeleccionadoId);
+    const visible = modoRegistroVehiculo === 'edicion' && Boolean(vehiculo);
+    document.getElementById('vehiculoEstadoEdicion').hidden = !visible;
+    if (!visible) return;
+    const activar = vehiculo.estado === 'Inactivo';
+    btnCambiarEstadoVehiculo.textContent = activar ? 'Activar' : 'Desactivar';
+    btnCambiarEstadoVehiculo.className = `vehicle-state-toggle ${activar ? 'is-success' : 'is-danger'}`;
+    btnCambiarEstadoVehiculo.title = `Estado actual: ${vehiculo.estado}`;
+    btnCambiarEstadoVehiculo.setAttribute('aria-label', `${activar ? 'Activar' : 'Desactivar'} vehiculo ${vehiculo.placa}. Estado actual: ${vehiculo.estado}`);
+}
+
+btnCambiarEstadoVehiculo.addEventListener('click', async () => {
+    if (modoRegistroVehiculo !== 'edicion' || guardandoVehiculo) return;
+    const vehiculo = vehiculos.find(item => item.id === vehiculoSeleccionadoId);
+    if (!vehiculo) return;
+    const estado = vehiculo.estado === 'Inactivo' ? 'Activo' : 'Inactivo';
+    guardandoVehiculo = true;
+    btnCambiarEstadoVehiculo.disabled = true;
+    btnGuardarVehiculo.disabled = true;
+    try {
+        if (!await window.ui.confirm(`Cambiar el vehiculo ${vehiculo.placa} a ${estado}?`, {
+            title: 'Estado del vehiculo', confirmText: estado === 'Activo' ? 'Activar' : 'Desactivar',
+            tone: estado === 'Activo' ? 'success' : 'danger'
+        })) return;
+        const actualizado = await window.api.vehiculos.setEstado(vehiculo.id, estado);
+        Object.assign(vehiculo, actualizado);
+        renderVehiculos();
+        actualizarControlEstadoVehiculo();
+    } catch (error) {
+        await window.ui.alert(`No se pudo cambiar el estado: ${error.message}`, { title: 'Error al actualizar' });
+    } finally {
+        guardandoVehiculo = false;
+        btnCambiarEstadoVehiculo.disabled = false;
+        btnGuardarVehiculo.disabled = false;
+    }
+});
+
+function editarKilometrajeFila(boton) {
+    const vehiculo = vehiculos.find(item => item.id === Number(boton.dataset.id));
+    if (!vehiculo) return;
+    if (vehiculo.kilometrajeBloqueado) {
+        window.ui.alert('No puedes modificar el kilometraje mientras el vehiculo tenga una orden pendiente de entrega.');
+        return;
+    }
+    const contenedor = boton.closest('.vehicle-mileage');
+    const original = Array.from(contenedor.childNodes);
+    const input = document.createElement('input');
+    input.type = 'number'; input.min = String(vehiculo.kilometraje); input.step = '0.01'; input.required = true;
+    input.value = vehiculo.kilometraje; input.setAttribute('aria-label', 'Nuevo kilometraje');
+    const guardar = document.createElement('button'), cancelar = document.createElement('button');
+    const alerta = document.createElement('small'); alerta.className = 'kilometraje-alerta';
+    alerta.setAttribute('role', 'status'); alerta.setAttribute('aria-live', 'polite');
+    input.addEventListener('input', () => {
+        const mensaje = input.value !== '' && Number(input.value) < Number(vehiculo.kilometraje)
+            ? `El kilometraje no puede ser menor al ya registrado (${vehiculo.kilometraje} km).` : '';
+        input.setCustomValidity(mensaje); alerta.textContent = mensaje;
+    });
+    guardar.type = cancelar.type = 'button'; guardar.className = cancelar.className = 'mileage-action';
+    guardar.textContent = 'Guardar'; cancelar.textContent = 'Cancelar';
+    const restaurar = () => contenedor.replaceChildren(...original);
+    cancelar.addEventListener('click', restaurar);
+    guardar.addEventListener('click', async () => {
+        if (guardar.disabled || !input.reportValidity()) return;
+        guardar.disabled = cancelar.disabled = input.disabled = true;
+        try {
+            const actualizado = await window.api.vehiculos.kilometraje(vehiculo.id, input.value);
+            vehiculo.kilometraje = actualizado.kilometraje; renderVehiculos();
+        } catch(error) { await window.ui.alert(error.message); }
+        finally { guardar.disabled = cancelar.disabled = input.disabled = false; }
+    });
+    input.addEventListener('keydown', event => {
+        if (event.key === 'Enter') { event.preventDefault(); guardar.click(); }
+        if (event.key === 'Escape' && !guardar.disabled) { event.preventDefault(); event.stopPropagation(); restaurar(); }
+    });
+    contenedor.replaceChildren(input,guardar,cancelar,alerta); input.focus(); input.select();
+}

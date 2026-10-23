@@ -241,7 +241,7 @@
     min-height:38px;
 }
 
-.vehicle-modal.is-readonly .vehicle-form .module-action.full{
+.vehicle-modal.is-readonly .vehicle-form #btnGuardarPiloto{
     display:none;
 }
 
@@ -333,4 +333,77 @@
     .vehicle-modal-card{
         overflow:auto;
     }
+}
+
+#clienteVehiculosVinculados{
+    margin:0;
+    padding-left:20px;
+    color:#cbd5e1;
+    overflow-wrap:anywhere;
+}
+
+/* Distribucion de la ficha: identificacion alta y vehiculos bajo licencia/contacto. */
+#formPiloto{
+    grid-template-columns:repeat(3, minmax(0, 1fr));
+    grid-template-areas:
+        "identificacion licencia contacto"
+        "identificacion vehiculos vehiculos"
+        "guardar guardar guardar";
+    align-items:stretch;
+    gap:12px;
+}
+#formPiloto > .cliente-identificacion{ grid-area:identificacion; }
+#formPiloto > .cliente-licencia{ grid-area:licencia; }
+#formPiloto > .cliente-contacto{ grid-area:contacto; }
+#formPiloto > .cliente-vehiculos{ grid-area:vehiculos; }
+#formPiloto > #btnGuardarPiloto{ grid-area:guardar; }
+#formPiloto .form-section{
+    min-width:0;
+    padding:12px;
+    gap:12px;
+}
+#formPiloto label{
+    min-width:0;
+}
+#formPiloto .form-grid{
+    grid-template-columns:repeat(2, minmax(0, 1fr));
+    align-items:stretch;
+    gap:10px;
+}
+#formPiloto .form-grid.single{
+    grid-template-columns:minmax(0, 1fr);
+}
+#formPiloto input,
+#formPiloto select{
+    min-width:0;
+    height:36px;
+    margin-top:auto;
+    flex-shrink:0;
+}
+#formPiloto .cliente-vehiculos{
+    min-height:140px;
+}
+#formPiloto #clienteVehiculosVinculados{
+    flex:1;
+    max-height:180px;
+    overflow:auto;
+    line-height:1.6;
+}
+#formPiloto #btnAgregarVehiculoCliente{
+    margin-top:auto;
+}
+@media (max-width:1100px){
+    #formPiloto{
+        grid-template-columns:minmax(0, 1fr);
+        grid-template-areas:"identificacion" "licencia" "contacto" "vehiculos" "guardar";
+    }
+}
+@media (max-width:540px){
+    #formPiloto .form-grid{
+        grid-template-columns:minmax(0, 1fr);
+    }
+}
+
+#formPiloto #btnAgregarVehiculoCliente[hidden]{
+    display:none;
 }

@@ -1,17 +1,28 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" spellcheck="false">
 
 <head>
     <meta charset="UTF-8">
-    <title>Órdenes de Trabajo | Taller Mecánico</title>
+    <script>try { if (localStorage.getItem('sidebarCollapsed') === 'true') document.documentElement.dataset.sidebarCollapsed = 'true'; } catch {}</script>
+    <title>Ordenes de Trabajo | Taller Mecanico</title>
     <link rel="stylesheet" href="../styles/styles.css">
     <link rel="stylesheet" href="../styles/modules/ordenes-trabajo.css">
+    <link rel="stylesheet" href="../styles/dialogs.css">
 </head>
 
 <body class="dashboard-body">
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-header">
-            <h2>Taller</h2>
+            <div class="sidebar-brand"><h2>Taller</h2>
+            <div class="recepcion-notifications">
+                <button id="campanaRecepcion" class="module-action" type="button" aria-label="Ver notificaciones" aria-expanded="false" aria-controls="panelNotificacionesRecepcion"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg><span id="cantidadNotificacionesRecepcion">--</span></button>
+                <section id="panelNotificacionesRecepcion" class="recepcion-notification-panel" hidden aria-labelledby="tituloNotificacionesRecepcion">
+                    <h2 id="tituloNotificacionesRecepcion">Notificaciones del taller</h2>
+                    <p id="mensajeNotificacionesRecepcion" role="status"></p>
+                    <div id="resumenNotificacionesRecepcion"></div><div id="listaNotificacionesRecepcion"></div>
+                </section>
+            </div>
+            </div>
 
             <button class="sidebar-toggle" id="sidebarToggle" type="button" aria-label="Contraer menu" aria-expanded="true">
                 <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -21,7 +32,7 @@
         </div>
 
         <nav class="sidebar-nav" aria-label="Menu principal">
-            <a class="nav-button" href="dashboard.html" data-tooltip="Inicio">
+<a data-tooltip="Dashboard" class="nav-button" href="dashboard.html">
                 <span class="nav-icon">
                     <svg viewBox="0 0 24 24" aria-hidden="true">
                         <path d="M3 11l9-7 9 7"></path>
@@ -29,10 +40,19 @@
                         <path d="M10 20v-6h4v6"></path>
                     </svg>
                 </span>
-                <span class="nav-label">Inicio</span>
+                <span class="nav-label">Dashboard</span>
             </a>
-
-            <a class="nav-button" href="vehiculos.html" data-tooltip="Vehiculos">
+<a data-tooltip="Recepcion" class="nav-button" href="recepcion.html"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6v4H9zM9 5H5v16h14V5h-4M8 13l3 3 5-6"/></svg></span><span class="nav-label">Recepcion</span></a>
+<a data-tooltip="Cliente" class="nav-button" href="pilotos.html">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"></path>
+                        <path d="M4 21a8 8 0 0 1 16 0"></path>
+                    </svg>
+                </span>
+                <span class="nav-label">Cliente</span>
+            </a>
+<a data-tooltip="Vehiculo" class="nav-button" href="vehiculos.html">
                 <span class="nav-icon">
                     <svg viewBox="0 0 24 24" aria-hidden="true">
                         <path d="M6 16h12l2-5H4l2 5z"></path>
@@ -43,29 +63,20 @@
                         <path d="M7 11l2-4h6l2 4"></path>
                     </svg>
                 </span>
-                <span class="nav-label">Vehiculos</span>
+                <span class="nav-label">Vehiculo</span>
             </a>
-
-            <a class="nav-button" href="#" data-tooltip="Servicios">
+<a data-tooltip="Ordenes de Trabajo" class="nav-button active" href="ordenes-trabajo.html">
                 <span class="nav-icon">
                     <svg viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="M14.7 6.3a4 4 0 0 0-5 5L4 17v3h3l5.7-5.7a4 4 0 0 0 5-5l-3 3-2-2 3-3z"></path>
+                        <path d="M7 3h10v18H7z"></path>
+                        <path d="M9 7h6"></path>
+                        <path d="M9 11h6"></path>
+                        <path d="M9 15h4"></path>
                     </svg>
                 </span>
-                <span class="nav-label">Servicios</span>
+                <span class="nav-label">Ordenes de Trabajo</span>
             </a>
-
-            <a class="nav-button" href="pilotos.html" data-tooltip="Clientes">
-                <span class="nav-icon">
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"></path>
-                        <path d="M4 21a8 8 0 0 1 16 0"></path>
-                    </svg>
-                </span>
-                <span class="nav-label">Clientes</span>
-            </a>
-
-            <a class="nav-button" href="repuestos.html" data-tooltip="Repuestos">
+<a data-tooltip="Repuestos" class="nav-button" href="repuestos.html">
                 <span class="nav-icon">
                     <svg viewBox="0 0 24 24" aria-hidden="true">
                         <path d="M7 7h10v10H7z"></path>
@@ -77,20 +88,7 @@
                 </span>
                 <span class="nav-label">Repuestos</span>
             </a>
-
-            <a class="nav-button active" href="ordenes-trabajo.html" data-tooltip="Ordenes de Trabajo">
-                <span class="nav-icon">
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="M7 3h10v18H7z"></path>
-                        <path d="M9 7h6"></path>
-                        <path d="M9 11h6"></path>
-                        <path d="M9 15h4"></path>
-                    </svg>
-                </span>
-                <span class="nav-label">Ordenes de Trabajo</span>
-            </a>
-
-            <a class="nav-button" href="#" data-tooltip="Mecanicos">
+<a data-tooltip="Mecanicos" class="nav-button" href="mecanicos.html">
                 <span class="nav-icon">
                     <svg viewBox="0 0 24 24" aria-hidden="true">
                         <path d="M16 21v-2a4 4 0 0 0-8 0v2"></path>
@@ -100,6 +98,7 @@
                 </span>
                 <span class="nav-label">Mecanicos</span>
             </a>
+<a data-tooltip="Historial" class="nav-button" href="historial.html"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-7M3 3v5h5M12 7v5l3 2"/></svg></span><span class="nav-label">Historial</span></a>
         </nav>
     </aside>
 
@@ -120,30 +119,39 @@
         </header>
 
         <section class="module-page work-order-page">
-            <div class="work-order-indicators">
-                <article class="work-order-indicator">
-                    <span>Total ordenes</span>
+            <div class="work-order-indicators metric-grid">
+                <article class="work-order-indicator metric-card">
+                    <span class="metric-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M7 3h14v16H7zM3 7v15h14M10 7h8m-8 4h8m-8 4h5"/></svg></span>
+                    <div class="order-month-heading"><label for="mesIndicadoresOrdenes">Total ordenes</label><input type="month" id="mesIndicadoresOrdenes" aria-label="Mes y ano de creacion de las ordenes"></div>
                     <strong id="totalOrdenesTrabajo">0</strong>
                 </article>
 
-                <article class="work-order-indicator">
-                    <span>Abiertas</span>
+                <article class="work-order-indicator metric-card">
+                    <span class="metric-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M3 7V4h6l2 3h10v3M3 7v13h16l3-10H7L3 20"/></svg></span>
+                    <span>Activas</span>
                     <strong id="ordenesAbiertas">0</strong>
                 </article>
+                <article class="work-order-indicator metric-card">
+                    <span class="metric-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M6 3h12M6 21h12M8 3v5l4 4-4 4v5m8-18v5l-4 4 4 4v5"/></svg></span>
+                    <span>En espera</span><strong id="ordenesEspera">0</strong>
+                </article>
 
-                <article class="work-order-indicator">
+                <article class="work-order-indicator metric-card">
+                    <span class="metric-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></span>
                     <span>En proceso</span>
                     <strong id="ordenesProceso">0</strong>
                 </article>
 
-                <article class="work-order-indicator">
+                <article class="work-order-indicator metric-card">
+                    <span class="metric-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><rect x="4" y="4" width="16" height="18" rx="2"/><path d="M9 2h6v4H9zM8 14l3 3 6-6"/></svg></span>
                     <span>Finalizadas</span>
                     <strong id="ordenesFinalizadas">0</strong>
                 </article>
 
-                <article class="work-order-indicator">
+                <article class="work-order-indicator metric-card">
+                    <span class="metric-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="M3 3h14v18l-3-2-3 2-3-2-3 2-2-2zM7 7h6m-6 4h6m-6 4h3M20 7h2v14h-2"/></svg></span>
                     <span>Total repuestos</span>
-                    <strong id="totalRepuestosOrdenes">Q0.00</strong>
+                    <strong id="totalRepuestosOrdenes">0</strong>
                 </article>
             </div>
 
@@ -158,10 +166,12 @@
                     </label>
 
                     <select id="filtroEstadoOrdenTrabajo">
-                        <option value="todos">Todos</option>
-                        <option value="Abierta">Abiertas</option>
+                        <option value="todos" selected>Todos</option>
+                        <option value="Espera">En espera</option>
+                        <option value="Activa">Activas</option>
                         <option value="En proceso">En proceso</option>
                         <option value="Finalizada">Finalizadas</option>
+                        <option value="Entregado">Entregado</option>
                     </select>
                 </div>
 
@@ -217,7 +227,7 @@
                                 Hora entrada
                                 <span class="time-field">
                                     <input id="ordenHoraEntrada" type="text" inputmode="numeric" maxlength="5" placeholder="08:15" required>
-                                    <select id="ordenPeriodoEntrada" aria-label="Periodo entrada">
+                                    <select id="ordenPeriodoEntrada" aria-label="Periodo entrada" required>
                                         <option value="AM">AM</option>
                                         <option value="PM">PM</option>
                                     </select>
@@ -226,14 +236,14 @@
 
                             <label>
                                 Fecha salida
-                                <input id="ordenFechaSalida" type="date">
+                                <input id="ordenFechaSalida" type="date" disabled>
                             </label>
 
                             <label>
                                 Hora salida
                                 <span class="time-field">
-                                    <input id="ordenHoraSalida" type="text" inputmode="numeric" maxlength="5" placeholder="04:20">
-                                    <select id="ordenPeriodoSalida" aria-label="Periodo salida">
+                                    <input id="ordenHoraSalida" type="text" inputmode="numeric" maxlength="5" placeholder="Se registra al finalizar" disabled>
+                                    <select id="ordenPeriodoSalida" aria-label="Periodo salida" disabled>
                                         <option value="AM">AM</option>
                                         <option value="PM">PM</option>
                                     </select>
@@ -244,12 +254,13 @@
                         <div class="form-grid">
                             <label>
                                 No. orden
-                                <input id="ordenNumero" type="text" placeholder="5451" required>
+                                <input id="ordenNumero" aria-describedby="ordenIdentidadValidacion" maxlength="50" type="text" placeholder="5451" required spellcheck="false">
                             </label>
 
                             <label>
                                 Serie
-                                <input id="ordenSerie" type="text" placeholder="Serie A">
+                                <input id="ordenSerie" maxlength="50" type="text" placeholder="Serie A" aria-describedby="ordenIdentidadValidacion" spellcheck="false" required>
+                                <small id="ordenIdentidadValidacion" role="status" aria-live="polite"></small>
                             </label>
                         </div>
                     </div>
@@ -259,52 +270,50 @@
 
                         <div class="form-grid three">
                             <label>
-                                Vehiculo
-                                <input id="ordenVehiculo" type="text" placeholder="Freightliner M2">
+                                Placa
+                                <input id="ordenPlaca" type="text" list="ordenPlacasList" placeholder="Selecciona o escribe la placa" autocomplete="off" required spellcheck="false">
                             </label>
 
                             <label>
-                                Placa
-                                <input id="ordenPlaca" type="text" list="ordenPlacasList" placeholder="C-842BVK" autocomplete="off" required>
+                                Vehiculo
+                                <input id="ordenVehiculo" type="text" readonly placeholder="Freightliner M2">
                             </label>
 
                             <label>
                                 Cliente
-                                <input id="ordenPiloto" type="text" list="ordenPilotosList" placeholder="Luis Morales">
+                                <input id="ordenPiloto" type="text" readonly list="ordenPilotosList" placeholder="Luis Morales">
                             </label>
                         </div>
 
-                        <div class="form-grid four">
+                        <div class="form-grid three">
                             <label>
                                 Marca
-                                <input id="ordenMarca" type="text" placeholder="Freightliner">
+                                <input id="ordenMarca" type="text" readonly placeholder="Freightliner">
                             </label>
 
                             <label>
                                 Mecanico
-                                <input id="ordenMecanico" type="text" list="ordenMecanicosList" placeholder="Juan Perez" required>
-                            </label>
-
-                            <label>
-                                Departamento
-                                <input id="ordenDepartamento" type="text" placeholder="Taller">
+                                <select id="ordenMecanico" required><option value="">Selecciona el mecanico</option></select>
                             </label>
 
                             <label>
                                 Kilometraje
-                                <input id="ordenKilometraje" type="number" min="0" placeholder="184200">
+                                <input id="ordenKilometraje" type="number" min="0" placeholder="184200" required>
                             </label>
                         </div>
 
                         <div class="form-grid">
                             <label>
                                 Prox. ser.
-                                <input id="ordenProximoServicio" type="text" placeholder="Cambio de aceite en 5,000 km">
+                                <input id="ordenProximoServicio" type="text" placeholder="Cambio de aceite en 5,000 km" aria-describedby="ordenKmValidacion" required>
+                                <small id="ordenKmValidacion" class="kilometraje-alerta" role="status" aria-live="polite"></small>
                             </label>
 
                             <label>
                                 Tipo de vehiculo
-                                <select id="ordenTipoVehiculo">
+                                <select id="ordenTipoVehiculo" disabled>
+                                    <option value="">Selecciona el tipo</option>
+                                    <option value="Sedan">Sedan</option>
                                     <option value="Cabezal">Cabezal</option>
                                     <option value="Camioneta">Camioneta</option>
                                     <option value="Pickup">Pickup</option>
@@ -324,10 +333,20 @@
                     <div class="form-section">
                         <h3>Trabajo realizado</h3>
 
-                        <div class="work-type-options">
+                        <div class="form-grid three">
+                            <div>
+                                <label for="ordenTipoTrabajoBusqueda">Tipo de trabajo</label>
+                                <select id="ordenTipoTrabajoBusqueda" required><option value="">Selecciona el tipo</option><option value="Mecanico">Mecanico</option><option value="Electrico">Electrico</option><option value="Enderezado y Pintura">Enderezado y Pintura</option><option value="Pinchazo">Pinchazo</option></select>
+                            </div>
+                            <div>
+                                <label for="ordenServicioSelector">Tipo de servicio</label>
+                                <select id="ordenServicioSelector" title="Doble clic para escribir y buscar un servicio" required><option value="">Selecciona el servicio</option></select><input id="ordenServicioBusqueda" hidden aria-label="Buscar servicio manualmente" type="text" list="ordenServiciosSugeridos" placeholder="Selecciona o escribe el servicio" autocomplete="off"><datalist id="ordenServiciosSugeridos"></datalist>
+                            </div>
+                        </div>
+                        <div class="work-type-options" hidden>
                             <label class="check-option">
                                 <input id="ordenManoMecanico" type="checkbox">
-                                <span>Mano de obra mecanico</span>
+                                <span>Mecanico</span>
                             </label>
 
                             <label class="check-option">
@@ -337,14 +356,19 @@
 
                             <label class="check-option">
                                 <input id="ordenManoPintura" type="checkbox">
-                                Enderezado y pintura
+                                <span>Enderezado y Pintura</span>
+                            </label>
+                            <label class="check-option">
+                                <input id="ordenManoPinchazo" type="checkbox">
+                                <span>Pinchazo</span>
                             </label>
                         </div>
 
-                        <label>
-                            Trabajos realizados
-                            <textarea id="ordenTrabajos" rows="4" placeholder="Detalle de los trabajos realizados"></textarea>
-                        </label>
+                        <div>
+                            <select id="ordenServicios" multiple hidden aria-label="Servicios seleccionados"></select>
+                            <label for="ordenTrabajos">Detalle de trabajo</label>
+                            <textarea id="ordenTrabajos" rows="6" placeholder="Detalle de trabajo" required></textarea>
+                        </div>
 
                         <div class="parts-section">
                             <div class="parts-section-title">Repuestos colocados</div>
@@ -378,10 +402,8 @@
                                         <tr>
                                             <th>Codigo</th>
                                             <th>Repuesto</th>
-                                            <th>Existencia</th>
                                             <th>Cantidad</th>
                                             <th>Costo</th>
-                                            <th>Accion</th>
                                         </tr>
                                     </thead>
                                     <tbody id="tablaRepuestosOrden"></tbody>
@@ -391,7 +413,7 @@
 
                         <label>
                             Observaciones
-                            <textarea id="ordenObservaciones" rows="3" placeholder="Observaciones generales"></textarea>
+                            <textarea id="ordenObservaciones" rows="3" placeholder="Observaciones generales (opcional)"></textarea>
                         </label>
 
                         <div class="form-grid">
@@ -399,7 +421,7 @@
                                 Mano de obra total
                                 <span class="currency-field">
                                     <span>Q</span>
-                                    <input id="ordenTotalManoObra" type="number" min="0" step="0.01" placeholder="0.00">
+                                    <input id="ordenTotalManoObra" type="number" min="0" step="0.01" placeholder="0.00" required>
                                 </span>
                             </label>
 
@@ -421,8 +443,12 @@
         </div>
     </main>
 
+    <script src="../scripts/ui-dialogs.js"></script>
     <script src="../scripts/dashboard.js"></script>
+    <script src="../scripts/live-validation.js"></script>
+    <script src="../scripts/orden-validation.js"></script>
     <script src="../scripts/modules/ordenes-trabajo.js"></script>
+    <script src="../scripts/recepcion-notificaciones.js"></script>
 </body>
 
 </html>

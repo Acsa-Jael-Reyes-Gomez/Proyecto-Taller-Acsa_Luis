@@ -1,17 +1,28 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" spellcheck="false">
 
 <head>
     <meta charset="UTF-8">
-    <title>Vehículos | Taller Mecánico</title>
+    <script>try { if (localStorage.getItem('sidebarCollapsed') === 'true') document.documentElement.dataset.sidebarCollapsed = 'true'; } catch {}</script>
+    <title>Vehiculos | Taller Mecanico</title>
     <link rel="stylesheet" href="../styles/styles.css">
     <link rel="stylesheet" href="../styles/modules/vehiculos.css">
+    <link rel="stylesheet" href="../styles/dialogs.css">
 </head>
 
 <body class="dashboard-body">
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-header">
-            <h2>Taller</h2>
+            <div class="sidebar-brand"><h2>Taller</h2>
+            <div class="recepcion-notifications">
+                <button id="campanaRecepcion" class="module-action" type="button" aria-label="Ver notificaciones" aria-expanded="false" aria-controls="panelNotificacionesRecepcion"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg><span id="cantidadNotificacionesRecepcion">--</span></button>
+                <section id="panelNotificacionesRecepcion" class="recepcion-notification-panel" hidden aria-labelledby="tituloNotificacionesRecepcion">
+                    <h2 id="tituloNotificacionesRecepcion">Notificaciones del taller</h2>
+                    <p id="mensajeNotificacionesRecepcion" role="status"></p>
+                    <div id="resumenNotificacionesRecepcion"></div><div id="listaNotificacionesRecepcion"></div>
+                </section>
+            </div>
+            </div>
 
             <button class="sidebar-toggle" id="sidebarToggle" type="button" aria-label="Contraer menu" aria-expanded="true">
                 <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -21,7 +32,7 @@
         </div>
 
         <nav class="sidebar-nav" aria-label="Menu principal">
-            <a class="nav-button" href="dashboard.html" data-tooltip="Inicio">
+<a data-tooltip="Dashboard" class="nav-button" href="dashboard.html">
                 <span class="nav-icon">
                     <svg viewBox="0 0 24 24" aria-hidden="true">
                         <path d="M3 11l9-7 9 7"></path>
@@ -29,10 +40,19 @@
                         <path d="M10 20v-6h4v6"></path>
                     </svg>
                 </span>
-                <span class="nav-label">Inicio</span>
+                <span class="nav-label">Dashboard</span>
             </a>
-
-            <a class="nav-button active" href="vehiculos.html" data-tooltip="Vehiculos">
+<a data-tooltip="Recepcion" class="nav-button" href="recepcion.html"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6v4H9zM9 5H5v16h14V5h-4M8 13l3 3 5-6"/></svg></span><span class="nav-label">Recepcion</span></a>
+<a data-tooltip="Cliente" class="nav-button" href="pilotos.html">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"></path>
+                        <path d="M4 21a8 8 0 0 1 16 0"></path>
+                    </svg>
+                </span>
+                <span class="nav-label">Cliente</span>
+            </a>
+<a data-tooltip="Vehiculo" class="nav-button active" href="vehiculos.html">
                 <span class="nav-icon">
                     <svg viewBox="0 0 24 24" aria-hidden="true">
                         <path d="M6 16h12l2-5H4l2 5z"></path>
@@ -43,29 +63,20 @@
                         <path d="M7 11l2-4h6l2 4"></path>
                     </svg>
                 </span>
-                <span class="nav-label">Vehiculos</span>
+                <span class="nav-label">Vehiculo</span>
             </a>
-
-            <a class="nav-button" href="#" data-tooltip="Servicios">
+<a data-tooltip="Ordenes de Trabajo" class="nav-button" href="ordenes-trabajo.html">
                 <span class="nav-icon">
                     <svg viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="M14.7 6.3a4 4 0 0 0-5 5L4 17v3h3l5.7-5.7a4 4 0 0 0 5-5l-3 3-2-2 3-3z"></path>
+                        <path d="M7 3h10v18H7z"></path>
+                        <path d="M9 7h6"></path>
+                        <path d="M9 11h6"></path>
+                        <path d="M9 15h4"></path>
                     </svg>
                 </span>
-                <span class="nav-label">Servicios</span>
+                <span class="nav-label">Ordenes de Trabajo</span>
             </a>
-
-            <a class="nav-button" href="pilotos.html" data-tooltip="Clientes">
-                <span class="nav-icon">
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"></path>
-                        <path d="M4 21a8 8 0 0 1 16 0"></path>
-                    </svg>
-                </span>
-                <span class="nav-label">Clientes</span>
-            </a>
-
-            <a class="nav-button" href="repuestos.html" data-tooltip="Repuestos">
+<a data-tooltip="Repuestos" class="nav-button" href="repuestos.html">
                 <span class="nav-icon">
                     <svg viewBox="0 0 24 24" aria-hidden="true">
                         <path d="M7 7h10v10H7z"></path>
@@ -77,20 +88,7 @@
                 </span>
                 <span class="nav-label">Repuestos</span>
             </a>
-
-            <a class="nav-button" href="ordenes-trabajo.html" data-tooltip="Ordenes de Trabajo">
-                <span class="nav-icon">
-                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                        <path d="M7 3h10v18H7z"></path>
-                        <path d="M9 7h6"></path>
-                        <path d="M9 11h6"></path>
-                        <path d="M9 15h4"></path>
-                    </svg>
-                </span>
-                <span class="nav-label">Ordenes de Trabajo</span>
-            </a>
-
-            <a class="nav-button" href="#" data-tooltip="Mecanicos">
+<a data-tooltip="Mecanicos" class="nav-button" href="mecanicos.html">
                 <span class="nav-icon">
                     <svg viewBox="0 0 24 24" aria-hidden="true">
                         <path d="M16 21v-2a4 4 0 0 0-8 0v2"></path>
@@ -100,6 +98,7 @@
                 </span>
                 <span class="nav-label">Mecanicos</span>
             </a>
+<a data-tooltip="Historial" class="nav-button" href="historial.html"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-7M3 3v5h5M12 7v5l3 2"/></svg></span><span class="nav-label">Historial</span></a>
         </nav>
     </aside>
 
@@ -110,23 +109,18 @@
                 <h1>Vehiculos</h1>
             </div>
 
-            <button class="module-action" id="btnNuevoVehiculo" type="button">
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                    <path d="M12 5v14"></path>
-                    <path d="M5 12h14"></path>
-                </svg>
-                Nuevo vehiculo
-            </button>
         </header>
 
         <section class="module-page">
-            <div class="vehicle-indicators">
-                <article class="vehicle-indicator">
+            <div class="vehicle-indicators metric-grid">
+                <article class="vehicle-indicator metric-card">
+                    <span class="metric-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><path d="m5 10 2-6h10l2 6M3 10h18v8H3zM6 18v3m12-3v3M6 14h2m8 0h2"/></svg></span>
                     <span>Total registrados</span>
                     <strong id="totalVehiculos">0</strong>
                 </article>
 
-                <article class="vehicle-indicator vehicle-type-indicator">
+                <article class="vehicle-indicator vehicle-type-indicator metric-card">
+                    <span class="metric-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg></span>
                     <span>Tipo</span>
                     <select id="filtroTipoIndicador">
                         <option value="todos">Todos</option>
@@ -135,20 +129,18 @@
                         <option value="Panel">Panel</option>
                         <option value="Cabezal">Cabezal</option>
                         <option value="Moto">Moto</option>
+                        <option value="Sedan">Sedan</option>
                     </select>
                 </article>
 
-                <article class="vehicle-indicator">
+                <article class="vehicle-indicator metric-card">
+                    <span class="metric-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><circle cx="12" cy="12" r="9"/><path d="m7 12 3 3 7-7"/></svg></span>
                     <span>Activos</span>
                     <strong id="vehiculosActivos">0</strong>
                 </article>
 
-                <article class="vehicle-indicator">
-                    <span>En taller</span>
-                    <strong id="vehiculosTaller">0</strong>
-                </article>
-
-                <article class="vehicle-indicator">
+                <article class="vehicle-indicator metric-card">
+                    <span class="metric-icon" aria-hidden="true"><svg viewBox="0 0 24 24" focusable="false"><circle cx="12" cy="12" r="9"/><path d="M9 8v8m6-8v8"/></svg></span>
                     <span>Inactivos</span>
                     <strong id="vehiculosInactivos">0</strong>
                 </article>
@@ -178,12 +170,14 @@
                             <thead>
                                 <tr>
                                     <th>Placa</th>
-                                    <th>Tipo</th>
+                                    <th>Marca</th>
+                                    <th>Linea</th>
                                     <th>Modelo</th>
+                                    <th>Tipo</th>
                                     <th>Cliente</th>
-                                    <th>Estado</th>
-                                    <th>Kilometraje</th>
+                                    <th>Kilometraje actual</th>
                                     <th>Detalle</th>
+
                                 </tr>
                             </thead>
                             <tbody id="tablaVehiculos"></tbody>
@@ -196,7 +190,7 @@
         <div class="vehicle-modal" id="modalVehiculo" aria-hidden="true">
             <div class="vehicle-modal-backdrop" data-close-vehicle-modal></div>
 
-            <section class="dashboard-panel vehicle-form-panel vehicle-modal-card" role="dialog" aria-modal="true" aria-label="Registro de vehiculo">
+            <section class="dashboard-panel vehicle-form-panel vehicle-modal-card" role="dialog" aria-modal="true" aria-label="Registro tarjeta de circulacion">
                 <button class="modal-close" id="btnCerrarVehiculo" type="button" aria-label="Cerrar registro de vehiculo">
                     <svg viewBox="0 0 24 24" aria-hidden="true">
                         <path d="M6 6l12 12"></path>
@@ -206,8 +200,11 @@
 
                 <div class="panel-header">
                     <div>
-                        <p>Registro</p>
-                        <h2>Datos del vehiculo</h2>
+                        <p>Registro tarjeta de circulacion</p>
+                        <h2 id="vehiculoEncabezado">Datos del vehiculo</h2>
+                    </div>
+                    <div id="vehiculoEstadoEdicion" class="vehicle-state-control" hidden>
+                        <button id="btnCambiarEstadoVehiculo" type="button" class="vehicle-state-toggle">Desactivar</button>
                     </div>
                 </div>
 
@@ -215,39 +212,31 @@
                     <div class="form-section">
                         <h3>Identificacion</h3>
 
-                        <div class="form-grid">
+                        <div class="form-grid single">
                             <label>
                                 Placa
-                                <input id="vehiculoPlaca" type="text" placeholder="MO-319LSD" autocomplete="off" required>
+                                <input id="vehiculoPlaca" type="text" placeholder="MO-319LSD" autocomplete="off" required spellcheck="false">
                             </label>
 
-                            <label>
-                                No. tarjeta
-                                <input id="vehiculoTarjeta" type="text" placeholder="202505920199">
-                            </label>
                         </div>
 
                         <div class="form-grid">
                             <label>
                                 NIT
-                                <input id="vehiculoNit" type="text" placeholder="81184085">
+                                <input id="vehiculoNit" type="text" placeholder="81184085" spellcheck="false">
                             </label>
 
                             <label>
                                 CUI
-                                <input id="vehiculoCui" type="text" placeholder="2194855720301">
+                                <input id="vehiculoCui" type="text" placeholder="2194855720301" spellcheck="false">
                             </label>
                         </div>
 
                         <label>
                             Propietario
-                            <input id="vehiculoPropietario" type="text" placeholder="Luis Adolfo Gomez Morales">
+                            <input id="vehiculoPropietario" name="propietario" type="text" maxlength="150" placeholder="Nombre del propietario" required>
                         </label>
 
-                        <label>
-                            Cliente
-                            <input id="vehiculoPiloto" type="text" placeholder="Nombre del cliente">
-                        </label>
                     </div>
 
                     <div class="form-section">
@@ -264,6 +253,7 @@
                                 </select>
                             </label>
 
+
                             <label>
                                 Tipo
                                 <select id="vehiculoTipo" required>
@@ -272,6 +262,7 @@
                                     <option value="Panel">Panel</option>
                                     <option value="Cabezal">Cabezal</option>
                                     <option value="Moto">Moto</option>
+                        <option value="Sedan">Sedan</option>
                                 </select>
                             </label>
                         </div>
@@ -291,7 +282,7 @@
                         <div class="form-grid">
                             <label>
                                 Modelo
-                                <input id="vehiculoModelo" type="text" placeholder="MO-319LSD" required>
+                                <input id="vehiculoModelo" type="text" placeholder="2026" required>
                             </label>
 
                             <label>
@@ -299,6 +290,14 @@
                                 <input id="vehiculoColor" type="text" placeholder="Rojo franjas y letras multicolor">
                             </label>
                         </div>
+                        <label>
+                            Nivel de uso para mantenimiento
+                            <select id="vehiculoNivelUso">
+                                <option>Bajo</option>
+                                <option selected>Normal</option>
+                                <option>Alto</option>
+                            </select>
+                        </label>
                     </div>
 
                     <div class="form-section">
@@ -307,24 +306,24 @@
                         <div class="form-grid">
                             <label>
                                 Chasis
-                                <input id="vehiculoChasis" type="text" placeholder="ME4MC5880SA003514">
+                                <input id="vehiculoChasis" type="text" placeholder="ME4MC5880SA003514" spellcheck="false">
                             </label>
 
                             <label>
                                 Serie
-                                <input id="vehiculoSerie" type="text" placeholder="ME4MC5880SA003514">
+                                <input id="vehiculoSerie" type="text" placeholder="ME4MC5880SA003514" spellcheck="false">
                             </label>
                         </div>
 
                         <div class="form-grid">
                             <label>
                                 VIN
-                                <input id="vehiculoVin" type="text" placeholder="ME4MC5880SA003514">
+                                <input id="vehiculoVin" type="text" placeholder="ME4MC5880SA003514" spellcheck="false">
                             </label>
 
                             <label>
                                 Motor
-                                <input id="vehiculoMotor" type="text" placeholder="MC56E520017524">
+                                <input id="vehiculoMotor" type="text" placeholder="MC56E520017524" spellcheck="false">
                             </label>
                         </div>
 
@@ -358,7 +357,8 @@
 
                             <label>
                                 Kilometraje actual
-                                <input id="vehiculoKilometraje" type="number" min="0" placeholder="184200" required>
+                                <input id="vehiculoKilometraje" type="number" min="0" placeholder="184200" aria-describedby="vehiculoKmValidacion" required>
+                                <small id="vehiculoKmValidacion" class="kilometraje-alerta" role="status" aria-live="polite"></small>
                             </label>
                         </div>
                     </div>
@@ -371,8 +371,10 @@
         </div>
     </main>
 
+    <script src="../scripts/ui-dialogs.js"></script>
     <script src="../scripts/dashboard.js"></script>
     <script src="../scripts/modules/vehiculos.js"></script>
+    <script src="../scripts/recepcion-notificaciones.js"></script>
 </body>
 
 </html>

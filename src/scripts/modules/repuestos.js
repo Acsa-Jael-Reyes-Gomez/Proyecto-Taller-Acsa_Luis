@@ -28,6 +28,7 @@ let repuestos = [];
 let historial = [];
 let ultimosIngresos = [];
 let tipoMovimiento = 'Ingreso';
+let estadoCargaRepuestos = 'Cargando datos...';
 
 function escapeHtml(value) {
     return String(value ?? '').replace(/[&<>"']/g, (character) => ({
@@ -70,8 +71,9 @@ function formatDateTime(value) {
 }
 
 function getRepuestoLabel(repuesto) {
-    return `${repuesto.codigo} - ${repuesto.nombre}`;
+    return `${repuesto.nombre} - ${getDescripcionRepuesto(repuesto)} (${repuesto.codigo})`;
 }
+function getDescripcionRepuesto(repuesto) { return repuesto.descripcion?.trim() || 'Sin descripcion'; }
 
 function enableEditableDatalist(input) {
     input.addEventListener('focus', () => {
@@ -98,12 +100,15 @@ function enableEditableDatalist(input) {
 
 function getRepuestoSeleccionado() {
     const value = movimientoRepuesto.value.trim().toLowerCase();
-
-    return repuestos.find((repuesto) => (
+    const seleccionado = repuestos.find(item => String(item.id) === movimientoRepuesto.dataset.idRepuesto);
+    if (seleccionado && value === getDescripcionRepuesto(seleccionado).toLowerCase()) return seleccionado;
+    const coincidencias = repuestos.filter((repuesto) => (
         repuesto.codigo.toLowerCase() === value
         || repuesto.nombre.toLowerCase() === value
         || getRepuestoLabel(repuesto).toLowerCase() === value
+        || `${repuesto.codigo} - ${repuesto.nombre}`.toLowerCase() === value
     ));
+    return coincidencias.length === 1 ? coincidencias[0] : null;
 }
 
 function getRepuestosFiltrados() {
@@ -117,6 +122,7 @@ function getRepuestosFiltrados() {
 }
 
 function renderIndicadores() {
+    if (estadoCargaRepuestos) { mostrarEstadoCargaRepuestos(); return; }
     totalRepuestos.innerText = repuestos.length;
     existenciaTotal.innerText = formatNumber(repuestos.reduce((total, repuesto) => total + Number(repuesto.existencia || 0), 0));
     bajoStock.innerText = repuestos.filter((repuesto) => Number(repuesto.existencia || 0) <= 5).length;
@@ -126,6 +132,7 @@ function renderIndicadores() {
 }
 
 function renderRepuestos() {
+    if (estadoCargaRepuestos) { mostrarEstadoCargaRepuestos(); return; }
     const rows = getRepuestosFiltrados();
 
     tablaRepuestos.innerHTML = rows.map((repuesto) => `
@@ -148,6 +155,7 @@ function renderRepuestos() {
 }
 
 function renderHistorial() {
+    if (estadoCargaRepuestos) { tablaHistorialRepuestos.innerHTML = '<tr><td colspan="7" class="empty-row">Datos no disponibles.</td></tr>'; return; }
     tablaHistorialRepuestos.innerHTML = historial.map((movimiento) => `
         <tr>
             <td>${formatDateTime(movimiento.fecha)}</td>
@@ -170,6 +178,7 @@ function renderHistorial() {
 }
 
 function renderUltimosIngresos() {
+    if (estadoCargaRepuestos) { ultimosIngresosList.textContent = 'Datos no disponibles.'; return; }
     ultimosIngresosList.innerHTML = ultimosIngresos.map((movimiento) => `
         <article class="ingreso-item">
             <div>
@@ -192,6 +201,9 @@ function renderRepuestosList() {
 }
 
 function setVista(view) {
+    const expandida = ['ingreso', 'salida', 'historial'].includes(view);
+    document.getElementById('ultimosIngresosPanel').hidden = expandida;
+    document.getElementById('repuestosWorkspace').classList.toggle('is-expanded', expandida);
     botonesVista.forEach((button) => {
         button.classList.toggle('active', button.dataset.view === view);
     });
@@ -210,6 +222,9 @@ function setVista(view) {
 }
 
 async function cargarRepuestos() {
+    estadoCargaRepuestos = 'Cargando datos...';
+    mostrarEstadoCargaRepuestos();
+    renderHistorial(); renderUltimosIngresos();
     try {
         const [repuestosData, historialData, ingresosData] = await Promise.all([
             window.api.repuestos.list(),
@@ -220,6 +235,7 @@ async function cargarRepuestos() {
         repuestos = repuestosData;
         historial = historialData;
         ultimosIngresos = ingresosData;
+        estadoCargaRepuestos = null;
 
         renderIndicadores();
         renderRepuestos();
@@ -227,7 +243,12 @@ async function cargarRepuestos() {
         renderUltimosIngresos();
         renderRepuestosList();
     } catch (error) {
-        alert(`No se pudo cargar el modulo de repuestos: ${error.message}`);
+        repuestos = []; historial = []; ultimosIngresos = []; renderRepuestosList();
+        estadoCargaRepuestos = 'No se pudieron cargar los datos. Revisa la conexion y vuelve a abrir el modulo.';
+        mostrarEstadoCargaRepuestos();
+        renderHistorial(); renderUltimosIngresos();
+        window.ui.alert(`No se pudo cargar el modulo de repuestos: ${error.message}`);
+        return false;
     }
 }
 
@@ -250,12 +271,20 @@ botonesVista.forEach((button) => {
 
 buscarRepuesto.addEventListener('input', renderRepuestos);
 enableEditableDatalist(movimientoRepuesto);
-movimientoRepuesto.addEventListener('change', () => {
+function actualizarRepuestoMovimiento() {
     const repuesto = getRepuestoSeleccionado();
+    movimientoRepuesto.dataset.idRepuesto = repuesto ? String(repuesto.id) : '';
+    if (repuesto) movimientoRepuesto.value = getDescripcionRepuesto(repuesto);
 
     if (repuesto && tipoMovimiento === 'Ingreso') {
         movimientoCosto.value = Number(repuesto.costo || 0).toFixed(2);
     }
+}
+movimientoRepuesto.addEventListener('input', actualizarRepuestoMovimiento);
+movimientoRepuesto.addEventListener('change', actualizarRepuestoMovimiento);
+formMovimientoRepuesto.addEventListener('reset', () => {
+    movimientoRepuesto.dataset.idRepuesto = '';
+    movimientoRepuesto.dataset.previousValue = '';
 });
 
 formMovimientoRepuesto.addEventListener('submit', async (event) => {
@@ -264,7 +293,7 @@ formMovimientoRepuesto.addEventListener('submit', async (event) => {
     const repuesto = getRepuestoSeleccionado();
 
     if (!repuesto) {
-        alert('Selecciona un repuesto registrado.');
+        window.ui.alert('Selecciona un repuesto registrado.');
         movimientoRepuesto.focus();
         return;
     }
@@ -282,7 +311,7 @@ formMovimientoRepuesto.addEventListener('submit', async (event) => {
         formMovimientoRepuesto.reset();
         await cargarRepuestos();
     } catch (error) {
-        alert(`No se pudo registrar el movimiento: ${error.message}`);
+        window.ui.alert(`No se pudo registrar el movimiento: ${error.message}`);
     }
 });
 
@@ -309,7 +338,7 @@ formRepuesto.addEventListener('submit', async (event) => {
         cerrarModalRepuesto();
         await cargarRepuestos();
     } catch (error) {
-        alert(`No se pudo guardar el repuesto: ${error.message}`);
+        window.ui.alert(`No se pudo guardar el repuesto: ${error.message}`);
     }
 });
 
@@ -321,3 +350,9 @@ document.addEventListener('keydown', (event) => {
 
 setVista('existencia');
 cargarRepuestos();
+
+function mostrarEstadoCargaRepuestos() {
+    tablaRepuestos.innerHTML = '<tr><td colspan="5" class="empty-row"></td></tr>';
+    tablaRepuestos.querySelector('td').textContent = estadoCargaRepuestos;
+    [totalRepuestos, existenciaTotal, bajoStock, valorInventario].forEach(indicador => { indicador.innerText = '--'; });
+}

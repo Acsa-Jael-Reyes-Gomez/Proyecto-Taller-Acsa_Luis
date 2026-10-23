@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="es" spellcheck="false">
+
+<head>
+    <meta charset="UTF-8">
+    <script>try { if (localStorage.getItem('sidebarCollapsed') === 'true') document.documentElement.dataset.sidebarCollapsed = 'true'; } catch {}</script>
+    <title>Recepcion | Taller Mecanico</title>
+    <link rel="stylesheet" href="../styles/styles.css">
+    <link rel="stylesheet" href="../styles/modules/recepcion.css">
+    <link rel="stylesheet" href="../styles/dialogs.css">
+</head>
+
+<body class="dashboard-body recepcion-body">
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-brand"><h2>Taller</h2>
+            <div class="recepcion-notifications">
+                <button id="campanaRecepcion" class="module-action" type="button" aria-label="Ver notificaciones" aria-expanded="false" aria-controls="panelNotificacionesRecepcion"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg><span id="cantidadNotificacionesRecepcion">--</span></button>
+                <section id="panelNotificacionesRecepcion" class="recepcion-notification-panel" hidden aria-labelledby="tituloNotificacionesRecepcion">
+                    <h2 id="tituloNotificacionesRecepcion">Notificaciones del taller</h2>
+                    <p id="mensajeNotificacionesRecepcion" role="status"></p>
+                    <div id="resumenNotificacionesRecepcion"></div><div id="listaNotificacionesRecepcion"></div>
+                </section>
+            </div>
+            </div>
+
+            <button class="sidebar-toggle" id="sidebarToggle" type="button" aria-label="Contraer menu" aria-expanded="true">
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M15 6l-6 6 6 6"></path>
+                </svg>
+            </button>
+        </div>
+
+        <nav class="sidebar-nav" aria-label="Menu principal">
+<a data-tooltip="Dashboard" class="nav-button" href="dashboard.html">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M3 11l9-7 9 7"></path>
+                        <path d="M5 10v10h14V10"></path>
+                        <path d="M10 20v-6h4v6"></path>
+                    </svg>
+                </span>
+                <span class="nav-label">Dashboard</span>
+            </a>
+<a data-tooltip="Recepcion" class="nav-button active" href="recepcion.html"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6v4H9zM9 5H5v16h14V5h-4M8 13l3 3 5-6"/></svg></span><span class="nav-label">Recepcion</span></a>
+<a data-tooltip="Cliente" class="nav-button" href="pilotos.html">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"></path>
+                        <path d="M4 21a8 8 0 0 1 16 0"></path>
+                    </svg>
+                </span>
+                <span class="nav-label">Cliente</span>
+            </a>
+<a data-tooltip="Vehiculo" class="nav-button" href="vehiculos.html">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M6 16h12l2-5H4l2 5z"></path>
+                        <path d="M7 16l-1.5 3"></path>
+                        <path d="M17 16l1.5 3"></path>
+                        <path d="M8 19h.01"></path>
+                        <path d="M16 19h.01"></path>
+                        <path d="M7 11l2-4h6l2 4"></path>
+                    </svg>
+                </span>
+                <span class="nav-label">Vehiculo</span>
+            </a>
+<a data-tooltip="Ordenes de Trabajo" class="nav-button" href="ordenes-trabajo.html">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M7 3h10v18H7z"></path>
+                        <path d="M9 7h6"></path>
+                        <path d="M9 11h6"></path>
+                        <path d="M9 15h4"></path>
+                    </svg>
+                </span>
+                <span class="nav-label">Ordenes de Trabajo</span>
+            </a>
+<a data-tooltip="Repuestos" class="nav-button" href="repuestos.html">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M7 7h10v10H7z"></path>
+                        <path d="M4 10h3"></path>
+                        <path d="M17 10h3"></path>
+                        <path d="M10 4v3"></path>
+                        <path d="M14 17v3"></path>
+                    </svg>
+                </span>
+                <span class="nav-label">Repuestos</span>
+            </a>
+<a data-tooltip="Mecanicos" class="nav-button" href="mecanicos.html">
+                <span class="nav-icon">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M16 21v-2a4 4 0 0 0-8 0v2"></path>
+                        <path d="M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"></path>
+                        <path d="M19 8l2 2-4 4-2-2 4-4z"></path>
+                    </svg>
+                </span>
+                <span class="nav-label">Mecanicos</span>
+            </a>
+<a data-tooltip="Historial" class="nav-button" href="historial.html"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-7M3 3v5h5M12 7v5l3 2"/></svg></span><span class="nav-label">Historial</span></a>
+        </nav>
+    </aside>
+
+
+    <main class="contenido">
+        <header class="dashboard-title"><div><p>Ingreso al taller</p><h1>Recepcion</h1></div>
+
+        </header>
+        <section class="recepcion-page">
+            <form id="formRecepcion">
+                <div class="recepcion-actions recepcion-new-client"><button class="module-action" id="nuevoClienteRecepcion" type="button">Agregar nuevo cliente</button></div>
+                <section class="recepcion-card"><h2>Datos del ingreso</h2><p>Selecciona un vehiculo registrado para recibirlo en el taller.</p>
+                    <div class="recepcion-grid">
+                        <label class="wide">Vehiculo / placa<div class="recepcion-plate-control"><input id="recepcionVehiculo" type="text" list="placasRecepcion" placeholder="Escribe o busca la placa" autocomplete="off" maxlength="30" required><button class="module-action" id="cambiarPlacaRecepcion" type="button">Cambiar placa</button></div><datalist id="placasRecepcion"></datalist></label>
+                        <label>Cliente / propietario<select id="recepcionCliente" required><option value="">Selecciona un cliente registrado</option></select></label>
+                        <label>Marca<input id="recepcionMarca" readonly></label>
+                        <label>Modelo<input id="recepcionModelo" readonly></label>
+                        <label>Kilometraje de ingreso<input id="recepcionKm" type="number" min="0" max="2147483647" step="1" aria-describedby="recepcionKmValidacion" required><small id="recepcionKmValidacion" class="kilometraje-alerta" role="status" aria-live="polite"></small></label>
+                        <label>Perfil de uso<select id="recepcionUso"><option value="Bajo">Bajo</option><option value="Normal" selected>Medio (normal)</option><option value="Alto">Alto</option></select></label>
+                        <label>Mecanico asignado<select id="recepcionMecanico"><option value="">Sin asignar todavia</option></select></label>
+                        <label class="wide">Motivo del ingreso<textarea id="recepcionMotivo" maxlength="1000" rows="2" required placeholder="Describe el servicio solicitado o la falla reportada"></textarea></label>
+                    </div>
+                </section>
+                <section class="recepcion-card"><h2 id="tituloCombustible">Nivel de combustible</h2>
+                    <fieldset class="fuel" aria-labelledby="tituloCombustible"><div class="fuel-options">
+                        <label style="--fuel:#fb3651;--level:0%"><input type="radio" name="combustible" value="Vacio" required><span><svg class="fuel-pump" viewBox="0 0 32 32" aria-hidden="true"><path d="M5 28V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v23M3 28h19M20 13h2a3 3 0 0 1 3 3v7a2 2 0 0 0 4 0V11l-5-5M26 8v5h3"/><rect x="8" y="6" width="9" height="7" rx="1"/><rect class="pump-tank" x="8" y="16" width="9" height="10" rx="1"/><rect class="pump-level" x="8" y="26" width="9" height="0"/><rect class="pump-tank-outline" x="8" y="16" width="9" height="10" rx="1"/></svg>Vacio</span></label>
+                        <label style="--fuel:#ff7913;--level:25%"><input type="radio" name="combustible" value="1/4"><span><svg class="fuel-pump" viewBox="0 0 32 32" aria-hidden="true"><path d="M5 28V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v23M3 28h19M20 13h2a3 3 0 0 1 3 3v7a2 2 0 0 0 4 0V11l-5-5M26 8v5h3"/><rect x="8" y="6" width="9" height="7" rx="1"/><rect class="pump-tank" x="8" y="16" width="9" height="10" rx="1"/><rect class="pump-level" x="8" y="23.5" width="9" height="2.5"/><rect class="pump-tank-outline" x="8" y="16" width="9" height="10" rx="1"/></svg>1/4</span></label>
+                        <label style="--fuel:#f5bd09;--level:50%"><input type="radio" name="combustible" value="1/2"><span><svg class="fuel-pump" viewBox="0 0 32 32" aria-hidden="true"><path d="M5 28V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v23M3 28h19M20 13h2a3 3 0 0 1 3 3v7a2 2 0 0 0 4 0V11l-5-5M26 8v5h3"/><rect x="8" y="6" width="9" height="7" rx="1"/><rect class="pump-tank" x="8" y="16" width="9" height="10" rx="1"/><rect class="pump-level" x="8" y="21" width="9" height="5"/><rect class="pump-tank-outline" x="8" y="16" width="9" height="10" rx="1"/></svg>1/2</span></label>
+                        <label style="--fuel:#84cc16;--level:75%"><input type="radio" name="combustible" value="3/4"><span><svg class="fuel-pump" viewBox="0 0 32 32" aria-hidden="true"><path d="M5 28V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v23M3 28h19M20 13h2a3 3 0 0 1 3 3v7a2 2 0 0 0 4 0V11l-5-5M26 8v5h3"/><rect x="8" y="6" width="9" height="7" rx="1"/><rect class="pump-tank" x="8" y="16" width="9" height="10" rx="1"/><rect class="pump-level" x="8" y="18.5" width="9" height="7.5"/><rect class="pump-tank-outline" x="8" y="16" width="9" height="10" rx="1"/></svg>3/4</span></label>
+                        <label style="--fuel:#10b981;--level:100%"><input type="radio" name="combustible" value="Lleno"><span><svg class="fuel-pump" viewBox="0 0 32 32" aria-hidden="true"><path d="M5 28V5a2 2 0 0 1 2-2h11a2 2 0 0 1 2 2v23M3 28h19M20 13h2a3 3 0 0 1 3 3v7a2 2 0 0 0 4 0V11l-5-5M26 8v5h3"/><rect x="8" y="6" width="9" height="7" rx="1"/><rect class="pump-tank" x="8" y="16" width="9" height="10" rx="1"/><rect class="pump-level" x="8" y="16" width="9" height="10"/><rect class="pump-tank-outline" x="8" y="16" width="9" height="10" rx="1"/></svg>Lleno</span></label>
+                    </div></fieldset>
+                    <fieldset><legend>Elementos presentes al ingreso</legend><div class="custody-options">
+                        <label><input id="recepcionEspejos" type="checkbox">Espejos</label><label><input id="recepcionBateria" type="checkbox">Bateria</label><label><input id="recepcionDocumentos" type="checkbox">Documentos</label>
+                    </div></fieldset>
+                    <div class="reception-condition-grid">
+                    <label>Rayones, golpes previos y observaciones<textarea id="recepcionObservaciones" maxlength="4000" rows="4" placeholder="Describe el estado de la carroceria y cualquier observacion relevante"></textarea></label>
+                        <section class="reception-photos" aria-labelledby="tituloFotosRecepcion">
+                            <h2 id="tituloFotosRecepcion">Fotos del estado de ingreso</h2>
+                            <p>Sube fotos o usa el QR. Puedes quitarlas antes de guardar.</p>
+                            <p id="mensajeFotosRecepcion" role="status" aria-live="polite"></p>
+                            <div id="galeriaFotosRecepcion" class="reception-photo-gallery"></div>
+                        </section>
+                    </div>
+                </section>
+                <div class="recepcion-actions"><button type="button" class="module-action" id="subirFotosRecepcion" disabled>Subir fotos</button><button type="button" class="module-action" id="qrFotosRecepcion" disabled>QR para celular</button><button class="module-action" id="guardarRecepcion" type="submit" disabled>Guardar</button><button class="module-action" id="generarRecepcion" type="button" disabled>Imprimir boleta</button><button class="module-action" type="reset">Limpiar</button></div>
+            </form>
+            <p id="recepcionMensaje" role="status" aria-live="polite"></p>
+            <section class="recepcion-card" aria-labelledby="tituloBoletasRecepcion">
+                <h2 id="tituloBoletasRecepcion">Boletas de recepciones guardadas</h2>
+                <label>Selecciona la recepcion<select id="boletaRecepcionSeleccion"><option value="">Cargando recepciones...</option></select></label>
+                <div class="recepcion-actions"><button class="module-action" id="abrirBoletaRecepcion" type="button" disabled>Ver e imprimir boleta</button></div>
+                <p id="mensajeBoletasRecepcion" role="status"></p>
+            </section>
+
+        </section>
+    </main>
+    <dialog id="documentoRecepcion" aria-labelledby="tituloDocumentoRecepcion">
+        <div class="documento-actions"><button class="module-action" id="imprimirRecepcion" type="button">Imprimir</button><button class="module-action" id="cerrarDocumentoRecepcion" type="button">Cerrar</button></div>
+        <article id="fichaRecepcion"></article>
+    </dialog>
+    <script src="../scripts/ui-dialogs.js"></script><script src="../scripts/dashboard.js"></script><script src="../scripts/recepcion-documento.js"></script><script src="../scripts/modules/recepcion.js"></script>
+    <dialog id="qrFotosDialog" class="reception-photo-dialog qr-photo-dialog" aria-labelledby="tituloQrFotos">
+        <div class="qr-photo-heading"><span class="qr-photo-badge">CARGA DESDE EL CELULAR</span><h2 id="tituloQrFotos">Fotograf?a el estado de ingreso</h2><p id="qrFotosVehiculo"></p></div>
+        <div class="qr-photo-layout"><div class="qr-photo-code"><p id="qrFotosEstado" role="status" aria-live="polite">Preparando tu QR?</p><img id="qrFotosImagen" alt="QR para subir fotos a esta recepcion" hidden><p id="qrFotosVence"></p></div>
+        <div class="qr-photo-instructions"><h3>Conecta, escanea y env?a</h3><ol><li>Conecta tu celular al mismo Wi-Fi de esta computadora.</li><li>Escanea el QR con la c?mara del celular.</li><li>Toma o selecciona las fotos y pulsa Enviar fotos al taller.</li></ol><p>Las fotos aparecer?n en la galer?a. Mant?n esta aplicaci?n abierta y guarda la recepci?n al terminar.</p><label>Conexi?n de esta computadora<select id="qrFotosDireccion"></select></label></div></div>
+        <details class="qr-photo-help"><summary>Enlace y ayuda de conexi?n</summary><input id="qrFotosEnlace" readonly aria-label="Enlace de carga de fotos"><p>Si no abre, comprueba que el firewall permita esta aplicaci?n en la red privada del taller.</p></details>
+        <div class="qr-photo-footer"><span>Hasta 20 fotos ? 10 MB por foto</span><button id="cerrarQrFotos" class="module-action" type="button">Cerrar y desactivar QR</button></div>
+    </dialog>
+    <dialog id="verFotoRecepcionDialog" class="reception-photo-dialog" aria-label="Foto del estado de ingreso"><img id="verFotoRecepcionImagen" alt="Estado del vehiculo al ingresar"><button id="cerrarFotoRecepcion" class="module-action" type="button">Cerrar foto</button></dialog>
+    <script src="../scripts/recepcion-fotos.js"></script>
+    <script src="../scripts/recepcion-notificaciones.js"></script>
+</body></html>

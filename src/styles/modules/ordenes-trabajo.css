@@ -5,7 +5,7 @@
 
 .work-order-indicators{
     display:grid;
-    grid-template-columns:repeat(5, minmax(150px, 1fr));
+    grid-template-columns:repeat(6, minmax(130px, 1fr));
     gap:12px;
     margin-bottom:14px;
 }
@@ -329,7 +329,7 @@
 
 .work-type-options{
     display:grid;
-    grid-template-columns:repeat(3, minmax(0, 1fr));
+    grid-template-columns:repeat(4, minmax(0, 1fr));
     gap:8px;
 }
 
@@ -434,9 +434,21 @@
     display:flex;
     align-items:center;
     gap:6px;
-    min-width:150px;
-    flex-wrap:wrap;
+    margin-left:auto;
+    flex-wrap:nowrap;
+    flex-shrink:0;
 }
+
+.parts-quantity-cell{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    width:100%;
+    min-width:190px;
+    min-height:36px;
+}
+.parts-quantity-value{display:flex;align-items:center;flex-shrink:0}
+.parts-actions > button{height:36px;display:inline-flex;align-items:center;justify-content:center}
 
 .parts-edit-button,
 .parts-ghost-button{
@@ -554,3 +566,54 @@
         width:100%;
     }
 }
+
+/* El mes pertenece al conjunto de indicadores; el inventario es actual. */
+.metric-grid > .metric-card > .order-month-heading {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-width: 0;
+}
+.order-month-heading label { font-size: 17px; font-weight: 600; }
+.order-month-heading input {
+    flex: 1 1 125px;
+    min-width: 0;
+    width: 125px;
+    max-width: 100%;
+    color-scheme: dark;
+    color: #e2e8f0;
+    background: #1e293b;
+    border: 1px solid rgba(255,255,255,.12);
+    border-radius: 8px;
+    padding: 5px;
+    font: inherit;
+    font-size: 13px;
+}
+
+.work-type-options[hidden], #ordenServicios[hidden] { display: none; }
+.order-choice-picker { display: flex; gap: 8px; align-items: center; }
+.order-choice-picker input { min-width: 0; flex: 1; }
+.order-choice-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.order-choice-tag { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border-radius: 8px; background: rgba(56,189,248,.14); font-size: 12px; }
+.order-choice-tag button { border: 0; background: transparent; color: #bae6fd; cursor: pointer; font-size: 18px; }
+
+.order-choice-picker input { box-sizing: border-box; color-scheme: dark; }
+.order-choice-picker input:-webkit-autofill,
+.order-choice-picker input:-webkit-autofill:focus {
+    -webkit-text-fill-color: #f8fafc;
+    -webkit-box-shadow: 0 0 0 1000px #192233 inset;
+    caret-color: #f8fafc;
+}
+
+#ordenServicioBusqueda[hidden], #ordenServicioSelector[hidden] { display: none; }
+
+#ordenMecanicoManual[hidden]{display:none}.order-state-actions{display:flex;align-items:center;gap:8px}
+
+.status.delivered{background:rgba(56,189,248,.22);color:#bae6fd;border:1px solid rgba(125,211,252,.3)}
+.status.waiting{background:rgba(239,68,68,.18);color:#fca5a5;border:1px solid rgba(239,68,68,.35)}
+.status.high{background:rgba(249,115,22,.18);color:#fdba74;border:1px solid rgba(249,115,22,.35)}
+.status.medium{background:rgba(234,179,8,.18);color:#fde047;border:1px solid rgba(234,179,8,.35)}
+.status.normal{background:rgba(34,197,94,.18);color:#86efac;border:1px solid rgba(34,197,94,.35)}

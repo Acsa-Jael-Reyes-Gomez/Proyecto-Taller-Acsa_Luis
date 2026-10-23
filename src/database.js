@@ -1,5 +1,6 @@
 const mysql = require('mysql2/promise');
 const localConfig = require('./db-config');
+const { validarCliente } = require('./scripts/cliente-validation');
 
 const dbConfig = {
     host: process.env.DB_HOST || localConfig.host || '127.0.0.1',
@@ -7,6 +8,7 @@ const dbConfig = {
     user: process.env.DB_USER || localConfig.user || 'root',
     password: process.env.DB_PASSWORD || localConfig.password || '',
     database: process.env.DB_NAME || localConfig.database || 'taller_ttc',
+    charset: 'UTF8_GENERAL_CI', // MySQL 5.1: conservar tildes y enie en entradas y resultados.
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0,
@@ -14,6 +16,9 @@ const dbConfig = {
 };
 
 const pool = mysql.createPool(dbConfig);
+const recepcion = require('./recepcion-layer').createRecepcionLayer(pool);
+const rules = require('./maintenance-rules').createRules(pool);
+const maintenance = require('./maintenance-layer').createMaintenanceLayer(pool, { listClientes: listPilotos, createCliente: createPiloto });
 
 function buildDatabaseError(error) {
     if (error && error.code === 'ER_ACCESS_DENIED_ERROR') {
@@ -31,18 +36,19 @@ function emptyToNull(value) {
 function mapVehiculo(row) {
     return {
         id: row.id_vehiculo,
+        idCliente: row.id_cliente,
+        creadoPor: row.creado_por,
+        nivelUso: row.nivel_uso,
         placa: row.placa,
-        noTarjeta: row.no_tarjeta,
         nit: row.nit,
         cui: row.cui,
         propietario: row.propietario,
-        piloto: row.piloto,
+        cliente: row.cliente,
         uso: row.uso,
         tipo: row.tipo,
         marca: row.marca,
         linea: row.linea,
         modelo: row.modelo,
-        modeloRegistro: row.modelo_registro,
         color: row.color,
         chasis: row.chasis,
         serie: row.serie,
@@ -54,25 +60,30 @@ function mapVehiculo(row) {
         cc: row.cc,
         tonelaje: row.tonelaje,
         kilometraje: row.kilometraje,
+        kilometrajeBloqueado: Boolean(Number(row.kilometraje_bloqueado)),
         estado: row.estado
     };
 }
 
 function mapPiloto(row) {
+    // Conservar los nombres consumidos por los modulos existentes.
     return {
-        id: row.id_piloto,
+        id: row.id_cliente,
+        tipoPersona: row.tipo_persona,
         nombre: row.nombre,
         dpi: row.dpi,
-        nit: row.nit,
         telefono: row.telefono,
         correo: row.correo,
         licencia: row.licencia,
         tipoLicencia: row.tipo_licencia,
         venceLicencia: row.vence_licencia,
         estado: row.estado,
-        vehiculo: row.vehiculo,
+        vehiculo: '',
+        vehiculos: [],
         direccion: row.direccion,
-        emergencia: row.emergencia
+        contactoEmpresa: row.contacto_empresa,
+        fechaCreacion: row.fecha_creacion,
+        fechaActualizacion: row.fecha_actualizacion
     };
 }
 
@@ -108,6 +119,9 @@ function mapRepuestoMovimiento(row) {
 function mapOrden(row) {
     return {
         id: row.id_orden,
+        fechaCreacion: row.fecha_creacion,
+        idVehiculo: row.id_vehiculo,
+        idRecepcion: row.id_recepcion,
         numero: row.numero,
         serie: row.serie,
         fechaEntrada: row.fecha_entrada,
@@ -121,6 +135,7 @@ function mapOrden(row) {
         piloto: row.piloto,
         marca: row.marca,
         mecanico: row.mecanico,
+        idMecanico: row.id_mecanico,
         departamento: row.departamento,
         kilometraje: row.kilometraje,
         proximoServicio: row.proximo_servicio,
@@ -129,6 +144,7 @@ function mapOrden(row) {
         manoMecanico: Boolean(row.mano_mecanico),
         manoElectronico: Boolean(row.mano_electronico),
         manoPintura: Boolean(row.mano_pintura),
+        manoPinchazo: Boolean(row.mano_pinchazo),
         totalManoObra: Number(row.total_mano_obra) || 0,
         totalRepuestos: Number(row.total_repuestos) || 0,
         trabajos: row.trabajos,
@@ -151,107 +167,218 @@ function mapOrdenRepuesto(row) {
 }
 
 async function listVehiculos() {
-    const [rows] = await pool.query('SELECT * FROM vehiculos ORDER BY id_vehiculo DESC');
+    const [rows] = await pool.query(`SELECT v.*, c.nombre AS cliente
+        FROM vehiculos v LEFT JOIN clientes c ON c.id_cliente = v.id_cliente ORDER BY v.id_vehiculo DESC`);
     return rows.map(mapVehiculo);
 }
 
-async function createVehiculo(vehiculo) {
-    const modelo = vehiculo.modelo || [vehiculo.marca, vehiculo.linea].filter(Boolean).join(' ') || vehiculo.modeloRegistro;
-    const [result] = await pool.execute(`
+async function createVehiculo(vehiculo, idUsuario) {
+    if (!Number.isInteger(idUsuario) || idUsuario <= 0) throw new Error('Inicia sesion para registrar un vehiculo.');
+    return rules.guardarVehiculo(null, vehiculo, async (connection, value) => {
+        const [usuarios] = await connection.execute("SELECT id_usuario FROM usuarios WHERE id_usuario = ? AND estado = 'Activo'", [idUsuario]);
+        if (!usuarios.length) throw new Error('El usuario de la sesion ya no esta activo. Inicia sesion nuevamente.');
+        return insertVehiculo(value, connection, idUsuario);
+    });
+}
+async function updateVehiculo(id, vehiculo) {
+    return rules.guardarVehiculo(id, vehiculo, (connection, value) => editVehiculo(id, value, connection));
+}
+
+async function insertVehiculo(vehiculo, connection, idUsuario) {
+    const modelo = String(vehiculo.modelo || '').trim();
+    const [result] = await connection.execute(`
         INSERT INTO vehiculos (
-            placa, no_tarjeta, nit, cui, propietario, piloto, uso, tipo, marca, linea,
-            modelo, modelo_registro, color, chasis, serie, vin, motor, asientos, ejes,
-            cilindros, cc, tonelaje, kilometraje, estado, fecha_creacion, fecha_actualizacion
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+            placa, nit, cui, propietario, uso, tipo, marca, linea,
+            modelo, color, chasis, serie, vin, motor, asientos, ejes,
+            cilindros, cc, tonelaje, kilometraje, estado, creado_por, fecha_creacion, fecha_actualizacion
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
     `, [
-        vehiculo.placa, emptyToNull(vehiculo.noTarjeta), emptyToNull(vehiculo.nit), emptyToNull(vehiculo.cui),
-        emptyToNull(vehiculo.propietario), emptyToNull(vehiculo.piloto), emptyToNull(vehiculo.uso),
+        vehiculo.placa, emptyToNull(vehiculo.nit), emptyToNull(vehiculo.cui),
+        emptyToNull(vehiculo.propietario), emptyToNull(vehiculo.uso),
         emptyToNull(vehiculo.tipo), emptyToNull(vehiculo.marca), emptyToNull(vehiculo.linea), emptyToNull(modelo),
-        emptyToNull(vehiculo.modeloRegistro), emptyToNull(vehiculo.color), emptyToNull(vehiculo.chasis),
+        emptyToNull(vehiculo.color), emptyToNull(vehiculo.chasis),
         emptyToNull(vehiculo.serie), emptyToNull(vehiculo.vin), emptyToNull(vehiculo.motor),
         Number(vehiculo.asientos) || 0, Number(vehiculo.ejes) || 0, Number(vehiculo.cilindros) || 0,
         Number(vehiculo.cc) || 0, Number(vehiculo.tonelaje) || 0, Number(vehiculo.kilometraje) || 0,
-        vehiculo.estado || 'Activo'
+        vehiculo.estado || 'Activo', idUsuario
     ]);
-    return getVehiculo(result.insertId);
+    return getVehiculo(result.insertId, connection);
 }
 
-async function updateVehiculo(id, vehiculo) {
-    const modelo = vehiculo.modelo || [vehiculo.marca, vehiculo.linea].filter(Boolean).join(' ') || vehiculo.modeloRegistro;
-    await pool.execute(`
+async function editVehiculo(id, vehiculo, connection) {
+    const modelo = String(vehiculo.modelo || '').trim();
+    await connection.execute(`
         UPDATE vehiculos SET
-            placa = ?, no_tarjeta = ?, nit = ?, cui = ?, propietario = ?, piloto = ?, uso = ?, tipo = ?,
-            marca = ?, linea = ?, modelo = ?, modelo_registro = ?, color = ?, chasis = ?, serie = ?,
+            placa = ?, nit = ?, cui = ?, propietario = ?, uso = ?, tipo = ?,
+            marca = ?, linea = ?, modelo = ?, color = ?, chasis = ?, serie = ?,
             vin = ?, motor = ?, asientos = ?, ejes = ?, cilindros = ?, cc = ?, tonelaje = ?,
             kilometraje = ?, estado = ?, fecha_actualizacion = NOW()
         WHERE id_vehiculo = ?
     `, [
-        vehiculo.placa, emptyToNull(vehiculo.noTarjeta), emptyToNull(vehiculo.nit), emptyToNull(vehiculo.cui),
-        emptyToNull(vehiculo.propietario), emptyToNull(vehiculo.piloto), emptyToNull(vehiculo.uso),
+        vehiculo.placa, emptyToNull(vehiculo.nit), emptyToNull(vehiculo.cui),
+        emptyToNull(vehiculo.propietario), emptyToNull(vehiculo.uso),
         emptyToNull(vehiculo.tipo), emptyToNull(vehiculo.marca), emptyToNull(vehiculo.linea), emptyToNull(modelo),
-        emptyToNull(vehiculo.modeloRegistro), emptyToNull(vehiculo.color), emptyToNull(vehiculo.chasis),
+        emptyToNull(vehiculo.color), emptyToNull(vehiculo.chasis),
         emptyToNull(vehiculo.serie), emptyToNull(vehiculo.vin), emptyToNull(vehiculo.motor),
         Number(vehiculo.asientos) || 0, Number(vehiculo.ejes) || 0, Number(vehiculo.cilindros) || 0,
         Number(vehiculo.cc) || 0, Number(vehiculo.tonelaje) || 0, Number(vehiculo.kilometraje) || 0,
         vehiculo.estado || 'Activo', id
     ]);
-    return getVehiculo(id);
+    return getVehiculo(id, connection);
 }
 
-async function getVehiculo(id) {
-    const [rows] = await pool.execute('SELECT * FROM vehiculos WHERE id_vehiculo = ?', [id]);
+async function getVehiculo(id, connection = pool) {
+    const [rows] = await connection.execute('SELECT v.*, c.nombre AS cliente FROM vehiculos v LEFT JOIN clientes c ON c.id_cliente = v.id_cliente WHERE v.id_vehiculo = ?', [id]);
     return rows[0] ? mapVehiculo(rows[0]) : null;
 }
 
-async function deleteVehiculo(id) {
-    await pool.execute('DELETE FROM vehiculos WHERE id_vehiculo = ?', [id]);
-    return true;
+async function setEstadoVehiculo(id, estado) {
+    if (!Number.isInteger(id) || id <= 0 || !['Activo', 'Inactivo'].includes(estado)) {
+        throw new Error('Vehiculo o estado invalido.');
+    }
+    await pool.execute('UPDATE vehiculos SET estado = ?, fecha_actualizacion = NOW() WHERE id_vehiculo = ?', [estado, id]);
+    const vehiculo = await getVehiculo(id);
+    if (!vehiculo) throw new Error('El vehiculo ya no existe.');
+    return vehiculo;
 }
+
+async function deleteVehiculo(id) {
+    validarIdEliminacion(id);
+    const connection = await pool.getConnection();
+    try {
+        await connection.beginTransaction();
+        const [vehiculos] = await connection.execute('SELECT id_vehiculo FROM vehiculos WHERE id_vehiculo = ? FOR UPDATE', [id]);
+        if (!vehiculos.length) throw new Error('El vehiculo ya no existe. Actualiza el listado.');
+        const [ordenes] = await connection.execute('SELECT id_orden FROM ordenes_trabajo WHERE id_vehiculo = ? LIMIT 1', [id]);
+        if (ordenes.length) throw new Error('El vehiculo tiene ordenes de trabajo. Puedes desactivarlo desde Editar para conservar su historial.');
+        const [historial] = await connection.execute("SELECT id_historial_kilometraje FROM historial_kilometraje WHERE id_vehiculo = ? AND (origen <> 'Registro de vehiculo' OR id_orden IS NOT NULL) LIMIT 1", [id]);
+        if (historial.length) throw new Error('El vehiculo tiene historial de kilometraje. Puedes desactivarlo desde Editar para conservarlo.');
+        // El kilometraje inicial forma parte del registro que se esta eliminando.
+        await connection.execute('DELETE FROM historial_kilometraje WHERE id_vehiculo = ?', [id]);
+        await connection.execute('DELETE FROM vehiculos WHERE id_vehiculo = ?', [id]);
+        await connection.commit();
+        return true;
+    } catch (error) {
+        await connection.rollback();
+        throw errorEliminacion(error, 'El vehiculo tiene registros relacionados y no se puede eliminar. Puedes desactivarlo desde Editar.');
+    } finally {
+        connection.release();
+    }
+}
+
+function validarIdEliminacion(id) {
+    if (!Number.isInteger(id) || id <= 0) throw new Error('Selecciona un registro valido.');
+}
+
+function errorEliminacion(error, mensaje) {
+    return ['ER_ROW_IS_REFERENCED', 'ER_ROW_IS_REFERENCED_2'].includes(error.code) ? new Error(mensaje) : error;
+}
+
+// La licencia sigue activa durante su fecha de vencimiento. Sin fecha: inactiva.
+const estadoClienteSQL = "IF(vence_licencia >= CURDATE(), 'Activo', 'Inactivo')";
 
 async function listPilotos() {
-    const [rows] = await pool.query('SELECT * FROM pilotos ORDER BY id_piloto DESC');
-    return rows.map(mapPiloto);
+    await pool.query(`UPDATE clientes SET estado = ${estadoClienteSQL} WHERE estado <> ${estadoClienteSQL}`);
+    const [rows] = await pool.query(`SELECT clientes.*, ${estadoClienteSQL} AS estado FROM clientes ORDER BY id_cliente DESC`);
+    return adjuntarVehiculosClientes(rows.map(mapPiloto));
 }
 
-async function createPiloto(piloto) {
-    const [result] = await pool.execute(`
-        INSERT INTO pilotos (
-            nombre, dpi, nit, telefono, correo, licencia, tipo_licencia, vence_licencia,
-            estado, vehiculo, direccion, emergencia, fecha_creacion, fecha_actualizacion
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
-    `, [
-        piloto.nombre, emptyToNull(piloto.dpi), emptyToNull(piloto.nit), emptyToNull(piloto.telefono),
-        emptyToNull(piloto.correo), emptyToNull(piloto.licencia), emptyToNull(piloto.tipoLicencia),
-        emptyToNull(piloto.venceLicencia), piloto.estado || 'Activo', emptyToNull(piloto.vehiculo),
-        emptyToNull(piloto.direccion), emptyToNull(piloto.emergencia)
-    ]);
-    return getPiloto(result.insertId);
+async function adjuntarVehiculosClientes(clientes) {
+    if (!clientes.length) return clientes;
+    const [vehiculos] = await pool.query(
+        'SELECT id_vehiculo, id_cliente, placa, modelo FROM vehiculos WHERE id_cliente IN (?) ORDER BY placa',
+        [clientes.map(cliente => cliente.id)]
+    );
+    const porCliente = new Map();
+    for (const row of vehiculos) {
+        if (!porCliente.has(row.id_cliente)) porCliente.set(row.id_cliente, []);
+        porCliente.get(row.id_cliente).push({ id: row.id_vehiculo, placa: row.placa, modelo: row.modelo });
+    }
+    return clientes.map(cliente => {
+        const vinculados = porCliente.get(cliente.id) || [];
+        return { ...cliente, vehiculos: vinculados, vehiculo: vinculados.map(v => v.placa).join(', ') };
+    });
 }
 
-async function updatePiloto(id, piloto) {
-    await pool.execute(`
-        UPDATE pilotos SET
-            nombre = ?, dpi = ?, nit = ?, telefono = ?, correo = ?, licencia = ?, tipo_licencia = ?,
-            vence_licencia = ?, estado = ?, vehiculo = ?, direccion = ?, emergencia = ?,
-            fecha_actualizacion = NOW()
-        WHERE id_piloto = ?
-    `, [
-        piloto.nombre, emptyToNull(piloto.dpi), emptyToNull(piloto.nit), emptyToNull(piloto.telefono),
-        emptyToNull(piloto.correo), emptyToNull(piloto.licencia), emptyToNull(piloto.tipoLicencia),
-        emptyToNull(piloto.venceLicencia), piloto.estado || 'Activo', emptyToNull(piloto.vehiculo),
-        emptyToNull(piloto.direccion), emptyToNull(piloto.emergencia), id
-    ]);
-    return getPiloto(id);
+function clienteValues(cliente) {
+    return [cliente.tipoPersona, cliente.nombre, cliente.dpi,
+        cliente.telefono, cliente.correo, cliente.licencia, cliente.tipoLicencia,
+        cliente.venceLicencia, cliente.direccion, cliente.contactoEmpresa];
+}
+
+async function checkClienteDpi(dpi, id = null) {
+    const value = String(dpi || '').replace(/[\s-]/g, '');
+    const [rows] = await pool.execute("SELECT id_cliente FROM clientes WHERE dpi = ? AND id_cliente <> ? LIMIT 1", [value, Number(id) || 0]);
+    return { duplicado: rows.length > 0 };
+}
+
+async function checkOrdenIdentidad(numero, serie, id = null, executor = pool) {
+    const [rows] = await executor.execute('SELECT id_orden FROM ordenes_trabajo WHERE numero = ? AND serie = ? AND id_orden <> ? LIMIT 1',
+        [String(numero || '').trim(), String(serie || '').trim().toUpperCase() || 'SERIE A', Number(id) || 0]);
+    return { duplicado: rows.length > 0 };
+}
+
+async function validarIdentidadOrden(connection, orden, id = null) {
+    orden.numero = String(orden.numero || '').trim();
+    orden.serie = String(orden.serie || '').trim().toUpperCase() || 'SERIE A';
+    if (!orden.numero) throw new Error('Ingresa el numero de orden.');
+    if (orden.numero.length > 50 || orden.serie.length > 50) throw new Error('El numero y la serie admiten hasta 50 caracteres.');
+    if ((await checkOrdenIdentidad(orden.numero, orden.serie, id, connection)).duplicado) throw new Error('Ya existe una orden con ese numero y serie.');
+}
+
+function clienteDatabaseError(error) {
+    if (error.code === 'ER_DUP_ENTRY') return new Error('Ya existe un cliente con ese DPI.');
+    return error;
+}
+
+async function createPiloto(value) {
+    const cliente = validarCliente(value);
+    if ((await checkClienteDpi(cliente.dpi)).duplicado) throw new Error('Ya existe un cliente con ese DPI.');
+    try {
+        const [result] = await pool.execute(`
+            INSERT INTO clientes (
+                tipo_persona, nombre, dpi, telefono, correo, licencia,
+                tipo_licencia, vence_licencia, direccion, contacto_empresa,
+                estado, fecha_creacion, fecha_actualizacion
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, IF(? >= CURDATE(), 'Activo', 'Inactivo'), NOW(), NOW())
+        `, [...clienteValues(cliente), cliente.venceLicencia]);
+        return getPiloto(result.insertId);
+    } catch (error) { throw clienteDatabaseError(error); }
+}
+
+async function updatePiloto(id, value) {
+    const cliente = validarCliente(value);
+    if ((await checkClienteDpi(cliente.dpi, id)).duplicado) throw new Error('Ya existe un cliente con ese DPI.');
+    try {
+        await pool.execute(`
+            UPDATE clientes SET tipo_persona = ?, nombre = ?, dpi = ?,
+                telefono = ?, correo = ?, licencia = ?, tipo_licencia = ?, vence_licencia = ?,
+                direccion = ?, contacto_empresa = ?,
+                estado = IF(? >= CURDATE(), 'Activo', 'Inactivo'), fecha_actualizacion = NOW()
+            WHERE id_cliente = ?
+        `, [...clienteValues(cliente), cliente.venceLicencia, id]);
+        const result = await getPiloto(id);
+        if (!result) throw new Error('El cliente ya no existe.');
+        return result;
+    } catch (error) { throw clienteDatabaseError(error); }
 }
 
 async function getPiloto(id) {
-    const [rows] = await pool.execute('SELECT * FROM pilotos WHERE id_piloto = ?', [id]);
-    return rows[0] ? mapPiloto(rows[0]) : null;
+    const [rows] = await pool.execute(`SELECT clientes.*, ${estadoClienteSQL} AS estado FROM clientes WHERE id_cliente = ?`, [id]);
+    return rows[0] ? (await adjuntarVehiculosClientes([mapPiloto(rows[0])]))[0] : null;
 }
 
 async function deletePiloto(id) {
-    await pool.execute('DELETE FROM pilotos WHERE id_piloto = ?', [id]);
-    return true;
+    validarIdEliminacion(id);
+    try {
+        const [vehiculos] = await pool.execute('SELECT id_vehiculo FROM vehiculos WHERE id_cliente = ? LIMIT 1', [id]);
+        if (vehiculos.length) throw new Error('El cliente tiene vehiculos vinculados. No se puede eliminar mientras conserve esos vehiculos.');
+        const [result] = await pool.execute('DELETE FROM clientes WHERE id_cliente = ?', [id]);
+        if (!result.affectedRows) throw new Error('El cliente ya no existe. Actualiza el listado.');
+        return true;
+    } catch (error) {
+        throw errorEliminacion(error, 'El cliente tiene registros relacionados y no se puede eliminar.');
+    }
 }
 
 async function listRepuestos() {
@@ -389,7 +516,8 @@ async function listUltimosIngresosRepuestos() {
 
 async function listOrdenes() {
     const [ordenRows] = await pool.query('SELECT * FROM ordenes_trabajo ORDER BY id_orden DESC');
-    const ordenes = ordenRows.map(mapOrden);
+    const [detalles] = await pool.query("SELECT id_orden, id_servicio FROM detalle_servicio WHERE estado_mantenimiento <> 'Cancelado'");
+    const ordenes = ordenRows.map(row => ({ ...mapOrden(row), servicios: detalles.filter(d => d.id_orden === row.id_orden).map(d => d.id_servicio) }));
 
     if (ordenes.length === 0) {
         return ordenes;
@@ -411,87 +539,127 @@ async function listOrdenes() {
     }));
 }
 
-async function saveOrdenRepuestos(connection, idOrden, repuestos = []) {
-    await connection.execute('DELETE FROM orden_repuestos WHERE id_orden = ?', [idOrden]);
-
+async function saveOrdenRepuestos(connection, idOrden, repuestos) {
+    if (repuestos === undefined) return;
+    if (!Array.isArray(repuestos)) throw new Error('Listado de repuestos invalido.');
+    const [anteriores] = await connection.execute('SELECT * FROM orden_repuestos WHERE id_orden = ? FOR UPDATE', [idOrden]);
+    const previos = new Map();
+    for (const row of anteriores) {
+        const key = Number(row.id_repuesto);
+        const previo = previos.get(key) || {cantidad:0, descontada:0};
+        previo.cantidad += Number(row.cantidad); previo.descontada += Number(row.cantidad_descontada);
+        previos.set(key, previo);
+    }
+    const nuevos = new Map();
     for (const repuesto of repuestos) {
-        const cantidad = Number(repuesto.cantidad) || 1;
-        const costo = Number(repuesto.costo) || 0;
-        await connection.execute(`
-            INSERT INTO orden_repuestos (
-                id_orden, id_repuesto, codigo, nombre, cantidad, cantidad_texto, precio_unitario, subtotal
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        `, [
-            idOrden, emptyToNull(repuesto.idRepuesto), emptyToNull(repuesto.codigo), repuesto.nombre,
-            cantidad, emptyToNull(repuesto.cantidadTexto), costo, cantidad * costo
-        ]);
+        const id = Number(repuesto.idRepuesto), cantidad = Number(repuesto.cantidad), costo = Number(repuesto.costo);
+        if (!Number.isInteger(id) || id <= 0) throw new Error('Selecciona cada repuesto desde el inventario.');
+        if (!Number.isFinite(cantidad) || cantidad <= 0 || Math.abs(cantidad*100 - Math.round(cantidad*100)) > 0.000001) throw new Error('La cantidad debe ser positiva y tener hasta dos decimales.');
+        if (!Number.isFinite(costo) || costo < 0) throw new Error('Costo de repuesto invalido.');
+        if (nuevos.has(id)) throw new Error('Agrupa el repuesto repetido en una sola cantidad.');
+        nuevos.set(id, {...repuesto, cantidad, costo});
+    }
+    const ids = [...new Set([...previos.keys(), ...nuevos.keys()])].filter(id => id > 0).sort((a,b)=>a-b);
+    for (const id of ids) {
+        const previo = previos.get(id) || {cantidad:0, descontada:0};
+        const nuevo = nuevos.get(id);
+        const cantidad = nuevo?.cantidad || 0;
+        const descontada = Math.max(0, Math.round((previo.descontada + cantidad - previo.cantidad)*100)/100);
+        const diferencia = Math.round((descontada - previo.descontada)*100)/100;
+        const [rows] = await connection.execute('SELECT * FROM inventario_repuestos WHERE id_repuesto = ? FOR UPDATE', [id]);
+        const item = rows[0];
+        if (!item) throw new Error('El repuesto ya no existe en inventario.');
+        if (nuevo) { nuevo.descontada = descontada; nuevo.codigo = item.codigo; nuevo.nombre = item.nombre; }
+        if (!diferencia) continue;
+        const anterior = Number(item.existencia), existencia = Math.round((anterior - diferencia)*100)/100;
+        if (existencia < 0) throw new Error(`Existencia insuficiente para ${item.nombre}. Disponible: ${anterior}.`);
+        await connection.execute('UPDATE inventario_repuestos SET existencia = ?, fecha_actualizacion = NOW() WHERE id_repuesto = ?', [existencia,id]);
+        await connection.execute(`INSERT INTO repuestos_movimientos
+            (id_repuesto,codigo,nombre,tipo,cantidad,existencia_anterior,existencia_nueva,precio_unitario,referencia,observaciones,fecha_movimiento)
+            VALUES (?,?,?,?,?,?,?,?,?,?,NOW())`, [id,item.codigo,item.nombre,diferencia > 0 ? 'Salida' : 'Ingreso',Math.abs(diferencia),anterior,existencia,item.precio_unitario,`Orden #${idOrden}`,diferencia > 0 ? 'Repuesto utilizado en orden' : 'Devolucion por ajuste de orden']);
+    }
+    await connection.execute('DELETE FROM orden_repuestos WHERE id_orden = ?', [idOrden]);
+    for (const [id, repuesto] of nuevos) {
+        await connection.execute(`INSERT INTO orden_repuestos
+            (id_orden,id_repuesto,codigo,nombre,cantidad,cantidad_texto,precio_unitario,subtotal,cantidad_descontada)
+            VALUES (?,?,?,?,?,?,?,?,?)`, [idOrden,id,repuesto.codigo,repuesto.nombre,repuesto.cantidad,emptyToNull(repuesto.cantidadTexto),repuesto.costo,repuesto.cantidad*repuesto.costo,repuesto.descontada]);
     }
 }
 
-async function createOrden(orden) {
+async function createOrden(value) {
+    const orden = { ...value };
     const connection = await pool.getConnection();
 
     try {
         await connection.beginTransaction();
+        await validarIdentidadOrden(connection, orden);
+        const contexto = await rules.prepararOrden(connection, orden);
         const [result] = await connection.execute(`
             INSERT INTO ordenes_trabajo (
                 numero, serie, fecha_entrada, hora_entrada, periodo_entrada, fecha_salida, hora_salida,
                 periodo_salida, vehiculo, placa, piloto, marca, mecanico, departamento, kilometraje,
-                proximo_servicio, tipo_vehiculo, estado, mano_mecanico, mano_electronico, mano_pintura,
+                proximo_servicio, tipo_vehiculo, estado, mano_mecanico, mano_electronico, mano_pintura, mano_pinchazo,
                 total_mano_obra, total_repuestos, trabajos, observaciones, fecha_creacion, fecha_actualizacion
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())
         `, [
-            orden.numero, orden.serie || 'Serie A', orden.fechaEntrada, orden.horaEntrada, orden.periodoEntrada || 'AM',
+            orden.numero, String(orden.serie || 'SERIE A').toUpperCase(), orden.fechaEntrada, orden.horaEntrada, orden.periodoEntrada || 'AM',
             emptyToNull(orden.fechaSalida), emptyToNull(orden.horaSalida), orden.periodoSalida || 'PM',
             emptyToNull(orden.vehiculo), orden.placa, emptyToNull(orden.piloto), emptyToNull(orden.marca),
             emptyToNull(orden.mecanico), emptyToNull(orden.departamento), Number(orden.kilometraje) || 0,
-            emptyToNull(orden.proximoServicio), emptyToNull(orden.tipoVehiculo), orden.estado || 'Abierta',
-            orden.manoMecanico ? 1 : 0, orden.manoElectronico ? 1 : 0, orden.manoPintura ? 1 : 0,
+            emptyToNull(orden.proximoServicio), emptyToNull(orden.tipoVehiculo), orden.estado || 'Activa',
+            orden.manoMecanico ? 1 : 0, orden.manoElectronico ? 1 : 0, orden.manoPintura ? 1 : 0, orden.manoPinchazo ? 1 : 0,
             Number(orden.totalManoObra) || 0, Number(orden.totalRepuestos) || 0,
-            emptyToNull(orden.trabajos), emptyToNull(orden.observaciones)
+            emptyToNull(orden.trabajos), orden.observaciones?.trim() || 'ninguna observacion'
         ]);
 
+        await rules.completarOrden(connection, result.insertId, orden, contexto);
         await saveOrdenRepuestos(connection, result.insertId, orden.repuestos);
         await connection.commit();
         return getOrden(result.insertId);
     } catch (error) {
         await connection.rollback();
+        if (error.code === 'ER_DUP_ENTRY') throw new Error('Ya existe una orden con ese numero y serie.');
         throw error;
     } finally {
         connection.release();
     }
 }
 
-async function updateOrden(id, orden) {
+async function updateOrden(id, value) {
+    const orden = { ...value };
     const connection = await pool.getConnection();
 
     try {
         await connection.beginTransaction();
+        await validarIdentidadOrden(connection, orden, id);
+        const contexto = await rules.prepararOrden(connection, orden, id);
         await connection.execute(`
             UPDATE ordenes_trabajo SET
                 numero = ?, serie = ?, fecha_entrada = ?, hora_entrada = ?, periodo_entrada = ?,
                 fecha_salida = ?, hora_salida = ?, periodo_salida = ?, vehiculo = ?, placa = ?,
                 piloto = ?, marca = ?, mecanico = ?, departamento = ?, kilometraje = ?,
                 proximo_servicio = ?, tipo_vehiculo = ?, estado = ?, mano_mecanico = ?,
-                mano_electronico = ?, mano_pintura = ?, total_mano_obra = ?, total_repuestos = ?,
+                mano_electronico = ?, mano_pintura = ?, mano_pinchazo = ?, total_mano_obra = ?, total_repuestos = ?,
                 trabajos = ?, observaciones = ?, fecha_actualizacion = NOW()
             WHERE id_orden = ?
         `, [
-            orden.numero, orden.serie || 'Serie A', orden.fechaEntrada, orden.horaEntrada, orden.periodoEntrada || 'AM',
+            orden.numero, String(orden.serie || 'SERIE A').toUpperCase(), orden.fechaEntrada, orden.horaEntrada, orden.periodoEntrada || 'AM',
             emptyToNull(orden.fechaSalida), emptyToNull(orden.horaSalida), orden.periodoSalida || 'PM',
             emptyToNull(orden.vehiculo), orden.placa, emptyToNull(orden.piloto), emptyToNull(orden.marca),
             emptyToNull(orden.mecanico), emptyToNull(orden.departamento), Number(orden.kilometraje) || 0,
-            emptyToNull(orden.proximoServicio), emptyToNull(orden.tipoVehiculo), orden.estado || 'Abierta',
-            orden.manoMecanico ? 1 : 0, orden.manoElectronico ? 1 : 0, orden.manoPintura ? 1 : 0,
+            emptyToNull(orden.proximoServicio), emptyToNull(orden.tipoVehiculo), orden.estado || 'Activa',
+            orden.manoMecanico ? 1 : 0, orden.manoElectronico ? 1 : 0, orden.manoPintura ? 1 : 0, orden.manoPinchazo ? 1 : 0,
             Number(orden.totalManoObra) || 0, Number(orden.totalRepuestos) || 0,
-            emptyToNull(orden.trabajos), emptyToNull(orden.observaciones), id
+            emptyToNull(orden.trabajos), orden.observaciones?.trim() || 'ninguna observacion', id
         ]);
 
+        await rules.completarOrden(connection, id, orden, contexto);
         await saveOrdenRepuestos(connection, id, orden.repuestos);
         await connection.commit();
         return getOrden(id);
     } catch (error) {
         await connection.rollback();
+        if (error.code === 'ER_DUP_ENTRY') throw new Error('Ya existe una orden con ese numero y serie.');
         throw error;
     } finally {
         connection.release();
@@ -507,12 +675,24 @@ async function getOrden(id) {
     const orden = mapOrden(rows[0]);
     const [repuestos] = await pool.execute('SELECT * FROM orden_repuestos WHERE id_orden = ? ORDER BY id_orden_repuesto ASC', [id]);
     orden.repuestos = repuestos.map(mapOrdenRepuesto);
+    const [detalles] = await pool.execute("SELECT id_servicio FROM detalle_servicio WHERE id_orden = ? AND estado_mantenimiento <> 'Cancelado'", [id]);
+    orden.servicios = detalles.map(d => d.id_servicio);
     return orden;
 }
 
 async function deleteOrden(id) {
-    await pool.execute('DELETE FROM ordenes_trabajo WHERE id_orden = ?', [id]);
-    return true;
+    validarIdEliminacion(id);
+    const connection = await pool.getConnection();
+    try {
+        await connection.beginTransaction();
+        const [rows] = await connection.execute('SELECT estado FROM ordenes_trabajo WHERE id_orden = ? FOR UPDATE', [id]);
+        if (!rows.length) throw new Error('La orden ya no existe.');
+        if (['Finalizada', 'Entregado'].includes(rows[0].estado)) throw new Error('No se puede eliminar una orden finalizada o entregada.');
+        await saveOrdenRepuestos(connection, id, []);
+        await connection.execute('DELETE FROM ordenes_trabajo WHERE id_orden = ?', [id]);
+        await connection.commit(); return true;
+    } catch(error) { await connection.rollback(); throw errorEliminacion(error, 'La orden tiene servicios vinculados y no se puede eliminar.'); }
+    finally { connection.release(); }
 }
 
 async function authenticateUser(usuario, password) {
@@ -547,7 +727,96 @@ async function authenticateUser(usuario, password) {
     }
 }
 
+function validarMecanico(value) {
+    const data = {};
+    for (const [key, max] of [['nombre',150],['dpi',30],['correo',150],['direccion',255]]) {
+        data[key] = String(value[key] ?? '').trim();
+        if (!data[key] || data[key].length > max) throw new Error('Completa correctamente todos los campos del mecanico.');
+    }
+    data.edad = Number(value.edad);
+    if (!Number.isInteger(data.edad) || data.edad < 18 || data.edad > 100) throw new Error('La edad debe estar entre 18 y 100.');
+    if (!/^\d{13}$/.test(data.dpi)) throw new Error('El DPI debe tener 13 digitos.');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.correo)) throw new Error('Ingresa un correo valido.');
+    data.fecha_contratacion = String(value.fecha_contratacion || '');
+    const fecha = new Date(data.fecha_contratacion + 'T12:00:00Z');
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(data.fecha_contratacion) || Number.isNaN(fecha.getTime()) || fecha.toISOString().slice(0,10) !== data.fecha_contratacion) throw new Error('Fecha de contratacion invalida.');
+    return data;
+}
+async function checkMecanicoDpi(dpi, id = null) {
+    const [rows] = await pool.execute('SELECT id_mecanico FROM mecanicos WHERE dpi = ? AND id_mecanico <> ? LIMIT 1', [String(dpi || '').trim(), Number(id) || 0]);
+    return { duplicado: rows.length > 0 };
+}
+async function deleteMecanico(id) {
+    validarIdEliminacion(id);
+    const [ordenes] = await pool.execute('SELECT id_orden FROM ordenes_trabajo WHERE id_mecanico = ? LIMIT 1', [id]);
+    if (ordenes.length) throw new Error('El mecanico tiene ordenes vinculadas y no se puede eliminar.');
+    try {
+        const [result] = await pool.execute('DELETE FROM mecanicos WHERE id_mecanico = ?', [id]);
+        if (!result.affectedRows) throw new Error('El mecanico ya no existe.');
+        return true;
+    } catch (error) { throw errorEliminacion(error, 'El mecanico tiene ordenes vinculadas y no se puede eliminar.'); }
+}
+async function listMecanicos() {
+    const [rows] = await pool.query('SELECT * FROM mecanicos ORDER BY nombre, id_mecanico'); return rows;
+}
+async function saveMecanico(id, value) {
+    const m = validarMecanico(value);
+    const values = [m.nombre,m.edad,m.dpi,m.correo,m.direccion,m.fecha_contratacion];
+    try {
+        if (id != null) {
+            validarIdEliminacion(id);
+            const [rows] = await pool.execute('SELECT id_mecanico FROM mecanicos WHERE id_mecanico = ?', [id]);
+            if (!rows.length) throw new Error('El mecanico ya no existe.');
+            await pool.execute('UPDATE mecanicos SET nombre=?, edad=?, dpi=?, correo=?, direccion=?, fecha_contratacion=? WHERE id_mecanico=?', [...values,id]);
+        } else {
+            const [result] = await pool.execute('INSERT INTO mecanicos (nombre,edad,dpi,correo,direccion,fecha_contratacion,fecha_registro) VALUES (?,?,?,?,?,?,NOW())',values); id=result.insertId;
+        }
+        const [rows] = await pool.execute('SELECT * FROM mecanicos WHERE id_mecanico=?',[id]); return rows[0];
+    } catch(error) { if(error.code === 'ER_DUP_ENTRY') throw new Error('Ya existe un mecanico con ese DPI.'); throw error; }
+}
+
+// Historial verificable a partir de registros persistidos; no inventa cambios anteriores.
+async function listHistorial() {
+    await recepcion.ensureTable();
+    const [rows] = await pool.query(`
+        SELECT o.id_orden, o.id_vehiculo, o.fecha_entrada AS fecha, o.placa,
+            o.vehiculo, o.tipo_vehiculo AS tipoVehiculo, CONCAT(o.serie, ' - ', o.numero) AS orden, o.kilometraje,
+            o.mecanico, o.trabajos, o.observaciones, o.estado,
+            r.id_recepcion, r.cliente AS recepcion_cliente, r.nivel_uso, r.combustible,
+            r.espejos, r.bateria, r.documentos, r.motivo AS recepcion_motivo,
+            r.observaciones AS recepcion_observaciones,
+            'Ingreso a taller' AS evento, o.fecha_creacion AS fecha_registro
+        FROM ordenes_trabajo o
+        LEFT JOIN recepciones r ON r.id_recepcion = o.id_recepcion
+        WHERE o.estado IN ('Espera', 'Abierta', 'Activa', 'En proceso', 'Finalizada', 'Entregado')
+        ORDER BY fecha DESC, fecha_registro DESC, id_orden DESC
+    `);
+    const [servicios] = await pool.query(`SELECT ds.id_orden, s.nombre
+        FROM detalle_servicio ds JOIN servicios s ON s.id_servicio = ds.id_servicio
+        ORDER BY ds.id_detalle_servicio`);
+    const porOrden = new Map();
+    for (const servicio of servicios) {
+        if (!porOrden.has(servicio.id_orden)) porOrden.set(servicio.id_orden, []);
+        porOrden.get(servicio.id_orden).push(servicio.nombre);
+    }
+    return rows.map(row => ({...row, servicios: (porOrden.get(row.id_orden) || []).join('; ')}));
+}
+
 module.exports = {
+    listRecepcionFotos: recepcion.listFotos,
+    addRecepcionFoto: recepcion.addFoto,
+    listRecepciones: recepcion.list,
+    getRecepcion: recepcion.get,
+    createRecepcion: recepcion.create,
+    checkClienteDpi,
+    checkOrdenIdentidad,
+    actualizarKilometraje: rules.actualizarKilometraje,
+    listMecanicos, saveMecanico, deleteMecanico, checkMecanicoDpi,
+    listHistorial,
+    setEstadoVehiculo,
+    dashboard: rules.dashboard,
+    generarRecordatorios: rules.generarRecordatorios,
+    listServicios: maintenance.listServicios,
     authenticateUser,
     listVehiculos,
     createVehiculo,

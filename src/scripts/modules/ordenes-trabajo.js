@@ -1,3 +1,4 @@
+let catalogoMecanicos = [];
 const tablaOrdenesTrabajo = document.getElementById('tablaOrdenesTrabajo');
 const buscarOrdenTrabajo = document.getElementById('buscarOrdenTrabajo');
 const filtroEstadoOrdenTrabajo = document.getElementById('filtroEstadoOrdenTrabajo');
@@ -9,6 +10,7 @@ const btnGuardarOrdenTrabajo = document.getElementById('btnGuardarOrdenTrabajo')
 const ordenTrabajoModo = document.getElementById('ordenTrabajoModo');
 const totalOrdenesTrabajo = document.getElementById('totalOrdenesTrabajo');
 const ordenesAbiertas = document.getElementById('ordenesAbiertas');
+const ordenesEspera = document.getElementById('ordenesEspera');
 const ordenesProceso = document.getElementById('ordenesProceso');
 const ordenesFinalizadas = document.getElementById('ordenesFinalizadas');
 const totalRepuestosOrdenes = document.getElementById('totalRepuestosOrdenes');
@@ -33,224 +35,23 @@ let repuestosOrdenActual = [];
 let repuestoEditandoIndex = null;
 let ordenSeleccionadaId = null;
 
-const catalogoVehiculos = [
-    {
-        placa: 'C-842BVK',
-        vehiculo: 'Freightliner M2',
-        marca: 'Freightliner',
-        piloto: 'Luis Morales',
-        mecanico: 'Juan Perez',
-        departamento: 'Taller',
-        tipoVehiculo: 'Camion',
-        kilometraje: 184200
-    },
-    {
-        placa: 'P-190FRT',
-        vehiculo: 'Hino 500',
-        marca: 'Hino',
-        piloto: 'Carlos Perez',
-        mecanico: 'Mario Lopez',
-        departamento: 'Frenos',
-        tipoVehiculo: 'Pickup',
-        kilometraje: 96450
-    },
-    {
-        placa: 'C-377KLM',
-        vehiculo: 'International 4300',
-        marca: 'International',
-        piloto: 'Mario Lopez',
-        mecanico: 'Edwin Garcia',
-        departamento: 'Mecanica',
-        tipoVehiculo: 'Camion',
-        kilometraje: 211780
-    },
-    {
-        placa: 'C-555NQP',
-        vehiculo: 'Kenworth T370',
-        marca: 'Kenworth',
-        piloto: 'Sin asignar',
-        mecanico: 'Juan Perez',
-        departamento: 'Taller',
-        tipoVehiculo: 'Cabezal',
-        kilometraje: 143010
-    }
-];
-
-const inventarioRepuestos = [
-    {
-        codigo: 'FIL-ACE-001',
-        nombre: 'Filtro de aceite',
-        existencia: 12,
-        costo: 75
-    },
-    {
-        codigo: 'ACE-15W40',
-        nombre: 'Aceite 15W40',
-        existencia: 36,
-        costo: 95
-    },
-    {
-        codigo: 'BOM-H4-001',
-        nombre: 'Bombilla frontal H4',
-        existencia: 18,
-        costo: 45
-    },
-    {
-        codigo: 'PAS-FRE-DEL',
-        nombre: 'Pastillas de freno delanteras',
-        existencia: 8,
-        costo: 680
-    },
-    {
-        codigo: 'LIQ-FRE-DOT3',
-        nombre: 'Liquido de frenos DOT3',
-        existencia: 14,
-        costo: 90
-    },
-    {
-        codigo: 'FAJ-MOT-001',
-        nombre: 'Faja de motor',
-        existencia: 6,
-        costo: 160
-    },
-    {
-        codigo: 'LLA-DEL-295',
-        nombre: 'Llanta delantera 295/80R22.5',
-        existencia: 4,
-        costo: 1850
-    }
-];
-
-const ordenesTrabajo = [
-    {
-        numero: '5451',
-        serie: 'Serie A',
-        fechaEntrada: '2026-06-16',
-        horaEntrada: '08:15',
-        periodoEntrada: 'AM',
-        fechaSalida: '',
-        horaSalida: '',
-        periodoSalida: 'PM',
-        vehiculo: 'Freightliner M2',
-        placa: 'C-842BVK',
-        piloto: 'Luis Morales',
-        marca: 'Freightliner',
-        mecanico: 'Juan Perez',
-        departamento: 'Taller',
-        kilometraje: 184200,
-        proximoServicio: 'Cambio de aceite en 5,000 km',
-        tipoVehiculo: 'Camion',
-        estado: 'En proceso',
-        manoMecanico: 350,
-        manoElectronico: 0,
-        manoPintura: 0,
-        totalManoObra: 350,
-        totalRepuestos: 475,
-        trabajos: 'Cambio de aceite, revision de frenos y ajuste de luces.',
-        repuestos: [
-            {
-                codigo: 'FIL-ACE-001',
-                nombre: 'Filtro de aceite',
-                existencia: 12,
-                cantidad: 1,
-                costo: 75
-            },
-            {
-                codigo: 'ACE-15W40',
-                nombre: 'Aceite 15W40',
-                existencia: 36,
-                cantidad: 4,
-                costo: 95
-            },
-            {
-                codigo: 'BOM-H4-001',
-                nombre: 'Bombilla frontal H4',
-                existencia: 18,
-                cantidad: 1,
-                costo: 20
-            }
-        ],
-        observaciones: 'Unidad queda pendiente de prueba en ruta.'
-    },
-    {
-        numero: '5452',
-        serie: 'Serie A',
-        fechaEntrada: '2026-06-15',
-        horaEntrada: '10:30',
-        periodoEntrada: 'AM',
-        fechaSalida: '2026-06-15',
-        horaSalida: '16:20',
-        periodoSalida: 'PM',
-        vehiculo: 'Hino 500',
-        placa: 'P-190FRT',
-        piloto: 'Carlos Perez',
-        marca: 'Hino',
-        mecanico: 'Mario Lopez',
-        departamento: 'Frenos',
-        kilometraje: 96450,
-        proximoServicio: 'Revision en 2,000 km',
-        tipoVehiculo: 'Pickup',
-        estado: 'Finalizada',
-        manoMecanico: 500,
-        manoElectronico: 0,
-        manoPintura: 0,
-        totalManoObra: 500,
-        totalRepuestos: 860,
-        trabajos: 'Cambio de pastillas delanteras y purga de sistema.',
-        repuestos: [
-            {
-                codigo: 'PAS-FRE-DEL',
-                nombre: 'Pastillas de freno delanteras',
-                existencia: 8,
-                cantidad: 1,
-                costo: 680
-            },
-            {
-                codigo: 'LIQ-FRE-DOT3',
-                nombre: 'Liquido de frenos DOT3',
-                existencia: 14,
-                cantidad: 2,
-                costo: 90
-            }
-        ],
-        observaciones: 'Se entrega unidad con freno probado.'
-    },
-    {
-        numero: '5453',
-        serie: 'Serie A',
-        fechaEntrada: '2026-06-16',
-        horaEntrada: '13:05',
-        periodoEntrada: 'PM',
-        fechaSalida: '',
-        horaSalida: '',
-        periodoSalida: 'PM',
-        vehiculo: 'International 4300',
-        placa: 'C-377KLM',
-        piloto: 'Mario Lopez',
-        marca: 'International',
-        mecanico: 'Edwin Garcia',
-        departamento: 'Mecanica',
-        kilometraje: 211780,
-        proximoServicio: 'Alineacion programada',
-        tipoVehiculo: 'Camion',
-        estado: 'Abierta',
-        manoMecanico: 0,
-        manoElectronico: 0,
-        manoPintura: 0,
-        totalManoObra: 0,
-        totalRepuestos: 0,
-        trabajos: 'Diagnostico inicial por vibracion en ruta.',
-        repuestos: [],
-        observaciones: 'Pendiente asignacion de mecanico.'
-    }
-];
+// Datos de negocio cargados exclusivamente desde la API de MySQL.
+const catalogoVehiculos = [];
+const inventarioRepuestos = [];
+const ordenesTrabajo = [];
+let estadoCargaOrdenes = 'Cargando datos...';
+btnNuevaOrdenTrabajo.disabled = true;
 
 function getOrdenFieldValue(id) {
     return document.getElementById(id).value.trim();
 }
 
 function setOrdenFieldValue(id, value = '') {
-    document.getElementById(id).value = value || '';
+    const field = document.getElementById(id);
+    if (['ordenTipoVehiculo', 'ordenMecanico'].includes(id) && value && !Array.from(field.options).some(option => option.value === value)) {
+        const option = document.createElement('option'); option.value = value; option.textContent = value; field.append(option);
+    }
+    field.value = value ?? '';
 }
 
 function setOrdenChecked(id, value = false) {
@@ -393,6 +194,10 @@ function assistTimeInput(input, complete = false) {
 }
 
 function validateTimeInput(input) {
+    if (input.disabled) {
+        input.setCustomValidity('');
+        return true;
+    }
     assistTimeInput(input, true);
 
     if (input.required && !input.value) {
@@ -526,25 +331,25 @@ function formatPlateInput(value) {
 
 function renderDatalistOptions(listElement, values) {
     listElement.innerHTML = [...new Set(values.filter(Boolean))].map((value) => (
-        `<option value="${value}"></option>`
+        `<option value="${escapeHtml(value)}"></option>`
     )).join('');
 }
 
 function renderOrdenDatalists() {
+    sincronizarSelectorServicio();
+    actualizarSugerenciasServicio();
     renderDatalistOptions(ordenPlacasList, catalogoVehiculos.map((vehiculo) => vehiculo.placa));
     renderDatalistOptions(ordenPilotosList, catalogoVehiculos.map((vehiculo) => vehiculo.piloto));
-    renderDatalistOptions(ordenMecanicosList, catalogoVehiculos.map((vehiculo) => vehiculo.mecanico));
-    renderDatalistOptions(ordenRepuestosInventarioList, inventarioRepuestos.map((repuesto) => `${repuesto.codigo} - ${repuesto.nombre}`));
+    document.getElementById('ordenMecanico').innerHTML = '<option value="">Selecciona el mecanico</option>' + catalogoMecanicos.map(m => `<option value="${m.id_mecanico}">${escapeHtml(m.nombre)} - ${escapeHtml(m.dpi)}</option>`).join('');
+    renderDatalistOptions(ordenRepuestosInventarioList, inventarioRepuestos.map(etiquetaRepuestoOrden));
 }
 
 function mapVehiculoCatalogo(vehiculo) {
     return {
         placa: vehiculo.placa,
-        vehiculo: vehiculo.modelo || vehiculo.modeloRegistro || [vehiculo.marca, vehiculo.linea].filter(Boolean).join(' '),
+        vehiculo: vehiculo.modelo,
         marca: vehiculo.marca,
-        piloto: vehiculo.piloto,
-        mecanico: '',
-        departamento: '',
+        piloto: vehiculo.cliente,
         tipoVehiculo: vehiculo.tipo,
         kilometraje: vehiculo.kilometraje
     };
@@ -556,23 +361,32 @@ function reemplazarContenido(array, values) {
 
 function buscarRepuestoInventario(value) {
     const normalized = value.trim().toLowerCase();
-
-    return inventarioRepuestos.find((repuesto) => (
+    const seleccionado = inventarioRepuestos.find(item => String(item.id) === ordenRepuestoBusqueda.dataset.idRepuesto);
+    if (seleccionado && normalized === descripcionRepuestoOrden(seleccionado).toLowerCase()) return seleccionado;
+    const coincidencias = inventarioRepuestos.filter((repuesto) => (
         repuesto.codigo.toLowerCase() === normalized
         || repuesto.nombre.toLowerCase() === normalized
         || `${repuesto.codigo} - ${repuesto.nombre}`.toLowerCase() === normalized
+        || etiquetaRepuestoOrden(repuesto).toLowerCase() === normalized
     ));
+    return coincidencias.length === 1 ? coincidencias[0] : null;
 }
+
+function descripcionRepuestoOrden(repuesto) { return repuesto.descripcion?.trim() || 'Sin descripcion'; }
+function etiquetaRepuestoOrden(repuesto) { return `${repuesto.nombre} - ${descripcionRepuestoOrden(repuesto)} (${repuesto.codigo})`; }
 
 function actualizarExistenciaRepuesto() {
     const repuesto = buscarRepuestoInventario(ordenRepuestoBusqueda.value);
 
     if (!repuesto) {
         ordenRepuestoExistencia.value = '';
+        ordenRepuestoBusqueda.dataset.idRepuesto = '';
         ordenRepuestoCantidad.removeAttribute('max');
         return;
     }
 
+    ordenRepuestoBusqueda.dataset.idRepuesto = String(repuesto.id);
+    ordenRepuestoBusqueda.value = descripcionRepuestoOrden(repuesto);
     ordenRepuestoExistencia.value = `${repuesto.existencia} unidades`;
     ordenRepuestoCantidad.max = repuesto.existencia;
 
@@ -587,10 +401,10 @@ function normalizarRepuestosOrden(repuestos) {
     }
 
     return repuestos.map((repuesto) => ({
-        idRepuesto: repuesto.idRepuesto || repuesto.id,
+        idRepuesto: repuesto.idRepuesto,
         codigo: repuesto.codigo,
         nombre: repuesto.nombre,
-        existencia: Number(repuesto.existencia) || 0,
+        existencia: inventarioRepuestos.find(item => item.id === repuesto.idRepuesto)?.existencia ?? null,
         cantidad: Number(repuesto.cantidad) || 1,
         cantidadTexto: repuesto.cantidadTexto || String(repuesto.cantidad || 1),
         costo: Number(repuesto.costo) || 0
@@ -653,7 +467,7 @@ function renderRepuestosOrden() {
     if (repuestosOrdenActual.length === 0) {
         tablaRepuestosOrden.innerHTML = `
             <tr>
-                <td colspan="6" class="empty-row">No hay repuestos agregados.</td>
+                <td colspan="4" class="empty-row">No hay repuestos agregados.</td>
             </tr>
         `;
         actualizarTotalRepuestos();
@@ -686,10 +500,8 @@ function renderRepuestosOrden() {
             <tr>
                 <td>${escapeHtml(repuesto.codigo)}</td>
                 <td>${escapeHtml(repuesto.nombre)}</td>
-                <td>${Number(repuesto.existencia) || 0}</td>
-                <td>${quantityCell}</td>
+                <td><div class="parts-quantity-cell"><span class="parts-quantity-value">${quantityCell}</span><div class="parts-actions">${actionCell}</div></div></td>
                 <td>${formatCurrency(repuesto.costo)}</td>
-                <td><div class="parts-actions">${actionCell}</div></td>
             </tr>
         `;
     }).join('');
@@ -697,11 +509,17 @@ function renderRepuestosOrden() {
     actualizarTotalRepuestos();
 }
 
+function existenciaDisponibleOrden(idRepuesto, existencia) {
+    const original = ordenesTrabajo.find(orden => orden.id === ordenSeleccionadaId);
+    const asignada = (original?.repuestos || []).filter(item => item.idRepuesto === idRepuesto).reduce((total, item) => total + Number(item.cantidad || 0), 0);
+    return Number(existencia || 0) + asignada;
+}
+
 function agregarRepuestoOrden() {
     const repuesto = buscarRepuestoInventario(ordenRepuestoBusqueda.value);
 
     if (!repuesto) {
-        alert('Selecciona un repuesto del inventario.');
+        window.ui.alert('Selecciona un repuesto del inventario.');
         ordenRepuestoBusqueda.focus();
         return;
     }
@@ -709,7 +527,7 @@ function agregarRepuestoOrden() {
     const cantidad = parseCantidadRepuesto(ordenRepuestoCantidad.value);
 
     if (!cantidad) {
-        alert('Ingresa una cantidad valida. Puedes usar enteros, decimales o fracciones como 1/2.');
+        window.ui.alert('Ingresa una cantidad valida. Puedes usar enteros, decimales o fracciones como 1/2.');
         ordenRepuestoCantidad.focus();
         return;
     }
@@ -717,8 +535,8 @@ function agregarRepuestoOrden() {
     const repuestoAgregado = repuestosOrdenActual.find((item) => item.codigo === repuesto.codigo);
     const cantidadActual = repuestoAgregado ? Number(repuestoAgregado.cantidad) || 0 : 0;
 
-    if (cantidadActual + cantidad.valor > repuesto.existencia) {
-        alert('No hay suficiente existencia disponible para agregar esa cantidad.');
+    if (cantidadActual + cantidad.valor > existenciaDisponibleOrden(repuesto.id, repuesto.existencia)) {
+        window.ui.alert('No hay suficiente existencia disponible para agregar esa cantidad.');
         ordenRepuestoCantidad.focus();
         return;
     }
@@ -739,6 +557,7 @@ function agregarRepuestoOrden() {
     }
 
     ordenRepuestoBusqueda.value = '';
+    ordenRepuestoBusqueda.dataset.idRepuesto = '';
     ordenRepuestoExistencia.value = '';
     ordenRepuestoCantidad.value = 1;
     renderRepuestosOrden();
@@ -755,16 +574,14 @@ function autocompletarVehiculoPorPlaca() {
     const vehiculo = buscarVehiculoPorPlaca(ordenPlaca.value);
 
     if (!vehiculo) {
+        ['ordenVehiculo', 'ordenMarca', 'ordenTipoVehiculo', 'ordenPiloto'].forEach(id => setOrdenFieldValue(id, ''));
         return;
     }
 
     setOrdenFieldValue('ordenVehiculo', vehiculo.vehiculo);
     setOrdenFieldValue('ordenMarca', vehiculo.marca);
-    setOrdenFieldValue('ordenDepartamento', vehiculo.departamento);
     setOrdenFieldValue('ordenTipoVehiculo', vehiculo.tipoVehiculo);
-    setOrdenFieldValue('ordenKilometraje', vehiculo.kilometraje);
     setOrdenFieldValue('ordenPiloto', vehiculo.piloto);
-    setOrdenFieldValue('ordenMecanico', vehiculo.mecanico);
 }
 
 function applyPlateFormat(input) {
@@ -793,10 +610,6 @@ function handlePlateKeydown(event) {
             event.target.value = '';
             event.target.dataset.skipPlateFormat = 'false';
 
-            if (event.target === buscarOrdenTrabajo) {
-                renderOrdenesTrabajo();
-            }
-
             return;
         }
 
@@ -808,6 +621,8 @@ function handlePlateKeydown(event) {
 }
 
 function getEstadoClass(estado) {
+    if (estado === 'Espera') return 'waiting';
+    if (estado === 'Entregado') return 'delivered';
     if (estado === 'Finalizada') {
         return 'normal';
     }
@@ -824,15 +639,23 @@ function setOrdenSoloLectura(isReadOnly) {
         field.disabled = isReadOnly;
     });
 
+    const camposAutomaticos = ['ordenFechaSalida', 'ordenHoraSalida', 'ordenPeriodoSalida'];
+    if (ordenSeleccionadaId != null) camposAutomaticos.push('ordenFechaEntrada', 'ordenHoraEntrada', 'ordenPeriodoEntrada', 'ordenPlaca', 'ordenVehiculo', 'ordenPiloto', 'ordenMarca', 'ordenKilometraje');
+    camposAutomaticos.forEach(id => { document.getElementById(id).disabled = true; });
+    document.getElementById('ordenTipoVehiculo').disabled = true;
     btnGuardarOrdenTrabajo.hidden = isReadOnly;
     btnAgregarRepuestoOrden.hidden = isReadOnly;
     modalOrdenTrabajo.classList.toggle('is-readonly', isReadOnly);
     ordenTrabajoModo.innerText = isReadOnly ? 'Detalle' : modoOrdenTrabajo === 'edicion' ? 'Edicion' : 'Registro';
     renderRepuestosOrden();
+    renderOpcionesTrabajo();
 }
 
 function limpiarOrdenTrabajo() {
+    validacionIdentidadOrden.reset();
     formOrdenTrabajo.reset();
+    ordenRepuestoBusqueda.dataset.idRepuesto = '';
+    validarProximoKilometraje();
     ordenSeleccionadaId = null;
     ordenTotalManoObra.value = '';
     repuestosOrdenActual = [];
@@ -840,9 +663,11 @@ function limpiarOrdenTrabajo() {
     ordenRepuestoExistencia.value = '';
     ordenRepuestoCantidad.value = 1;
     renderRepuestosOrden();
+    renderOpcionesTrabajo();
 }
 
 function abrirRegistroOrdenTrabajo() {
+    if (estadoCargaOrdenes) return;
     modoOrdenTrabajo = 'nuevo';
     ordenSeleccionadaId = null;
     setOrdenSoloLectura(false);
@@ -851,42 +676,48 @@ function abrirRegistroOrdenTrabajo() {
 
     modalOrdenTrabajo.classList.add('is-open');
     modalOrdenTrabajo.setAttribute('aria-hidden', 'false');
-    document.getElementById('ordenNumero').focus();
+    ordenPlaca.focus();
 }
 
 function ocultarOrdenTrabajo() {
+    validacionIdentidadOrden.reset();
     modalOrdenTrabajo.classList.remove('is-open');
     modalOrdenTrabajo.setAttribute('aria-hidden', 'true');
     btnNuevaOrdenTrabajo.focus();
 }
 
 function cargarOrdenEnFormulario(orden) {
+    validacionIdentidadOrden.reset();
     setOrdenFieldValue('ordenFechaEntrada', orden.fechaEntrada);
     setOrdenFieldValue('ordenHoraEntrada', orden.horaEntrada);
     setOrdenFieldValue('ordenPeriodoEntrada', orden.periodoEntrada || 'AM');
     setOrdenFieldValue('ordenFechaSalida', orden.fechaSalida);
     setOrdenFieldValue('ordenHoraSalida', orden.horaSalida);
     setOrdenFieldValue('ordenPeriodoSalida', orden.periodoSalida || 'PM');
-    setOrdenFieldValue('ordenNumero', orden.numero);
-    setOrdenFieldValue('ordenSerie', orden.serie);
+    setOrdenFieldValue('ordenNumero', orden.estado === 'Espera' ? '' : orden.numero);
+    Array.from(document.getElementById('ordenServicios').options).forEach(option => { option.selected = (orden.servicios || []).includes(Number(option.value)); });
+    setOrdenFieldValue('ordenSerie', orden.estado === 'Espera' ? '' : orden.serie);
     setOrdenFieldValue('ordenVehiculo', orden.vehiculo);
     setOrdenFieldValue('ordenPlaca', orden.placa);
     setOrdenFieldValue('ordenPiloto', orden.piloto);
     setOrdenFieldValue('ordenMarca', orden.marca);
-    setOrdenFieldValue('ordenMecanico', orden.mecanico);
-    setOrdenFieldValue('ordenDepartamento', orden.departamento);
+    setOrdenFieldValue('ordenMecanico', orden.idMecanico ? String(orden.idMecanico) : orden.mecanico);
     setOrdenFieldValue('ordenKilometraje', orden.kilometraje);
     setOrdenFieldValue('ordenProximoServicio', orden.proximoServicio);
+    validarProximoKilometraje();
     setOrdenFieldValue('ordenTipoVehiculo', orden.tipoVehiculo);
     setOrdenChecked('ordenManoMecanico', orden.manoMecanico);
     setOrdenChecked('ordenManoElectronico', orden.manoElectronico);
     setOrdenChecked('ordenManoPintura', orden.manoPintura);
+    setOrdenChecked('ordenManoPinchazo', orden.manoPinchazo);
+    renderOpcionesTrabajo();
     setOrdenFieldValue('ordenTrabajos', orden.trabajos);
     setOrdenFieldValue('ordenObservaciones', orden.observaciones);
     setOrdenFieldValue('ordenTotalManoObra', orden.totalManoObra);
     repuestosOrdenActual = normalizarRepuestosOrden(orden.repuestos);
     repuestoEditandoIndex = null;
     renderRepuestosOrden();
+    renderOpcionesTrabajo();
 }
 
 function getOrdenFormulario() {
@@ -894,7 +725,8 @@ function getOrdenFormulario() {
 
     return {
         numero: getOrdenFieldValue('ordenNumero'),
-        serie: getOrdenFieldValue('ordenSerie') || 'Serie A',
+        estado: ordenActual?.estado === 'Espera' ? 'Activa' : ordenActual?.estado || 'Activa',
+        serie: getOrdenFieldValue('ordenSerie').toUpperCase(),
         fechaEntrada: document.getElementById('ordenFechaEntrada').value,
         horaEntrada: getOrdenFieldValue('ordenHoraEntrada'),
         periodoEntrada: document.getElementById('ordenPeriodoEntrada').value,
@@ -905,16 +737,19 @@ function getOrdenFormulario() {
         placa: formatPlateInput(getOrdenFieldValue('ordenPlaca')),
         piloto: getOrdenFieldValue('ordenPiloto'),
         marca: getOrdenFieldValue('ordenMarca'),
-        mecanico: getOrdenFieldValue('ordenMecanico'),
-        departamento: getOrdenFieldValue('ordenDepartamento'),
-        kilometraje: Number(getOrdenFieldValue('ordenKilometraje')) || 0,
+        idMecanico: catalogoMecanicos.find(m => String(m.id_mecanico) === getOrdenFieldValue('ordenMecanico'))?.id_mecanico ?? null,
+        mecanico: catalogoMecanicos.find(m => String(m.id_mecanico) === getOrdenFieldValue('ordenMecanico'))?.nombre || getOrdenFieldValue('ordenMecanico'),
+        departamento: ordenesTrabajo.find(orden => orden.id === ordenSeleccionadaId)?.departamento ?? null,
+        kilometraje: getOrdenFieldValue('ordenKilometraje'),
         proximoServicio: getOrdenFieldValue('ordenProximoServicio'),
         tipoVehiculo: document.getElementById('ordenTipoVehiculo').value,
-        estado: modoOrdenTrabajo === 'edicion' ? ordenActual?.estado || 'Abierta' : 'Abierta',
+        idVehiculo: ordenActual?.idVehiculo || null,
+        servicios: Array.from(document.getElementById('ordenServicios').selectedOptions, option => Number(option.value)),
         manoMecanico: document.getElementById('ordenManoMecanico').checked,
         manoElectronico: document.getElementById('ordenManoElectronico').checked,
         manoPintura: document.getElementById('ordenManoPintura').checked,
-        totalManoObra: Number(getOrdenFieldValue('ordenTotalManoObra')) || 0,
+        manoPinchazo: document.getElementById('ordenManoPinchazo').checked,
+        totalManoObra: getOrdenFieldValue('ordenTotalManoObra'),
         totalRepuestos: calcularTotalRepuestos(),
         trabajos: getOrdenFieldValue('ordenTrabajos'),
         repuestos: repuestosOrdenActual.map((repuesto) => ({ ...repuesto })),
@@ -951,19 +786,43 @@ function editarOrden(index) {
     setOrdenSoloLectura(false);
     modalOrdenTrabajo.classList.add('is-open');
     modalOrdenTrabajo.setAttribute('aria-hidden', 'false');
-    document.getElementById('ordenNumero').focus();
+    ordenPlaca.focus();
 }
 
+const mesIndicadoresOrdenes = document.getElementById('mesIndicadoresOrdenes');
+const fechaIndicadores = new Date();
+mesIndicadoresOrdenes.value = `${fechaIndicadores.getFullYear()}-${String(fechaIndicadores.getMonth() + 1).padStart(2, '0')}`;
+mesIndicadoresOrdenes.addEventListener('change', () => {
+    if (!/^\d{4}-(0[1-9]|1[0-2])$/.test(mesIndicadoresOrdenes.value)) {
+        const hoy = new Date();
+        mesIndicadoresOrdenes.value = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}`;
+    }
+    renderIndicadoresOrdenes();
+});
+
 function renderIndicadoresOrdenes() {
-    totalOrdenesTrabajo.innerText = ordenesTrabajo.length;
-    ordenesAbiertas.innerText = ordenesTrabajo.filter((orden) => orden.estado === 'Abierta').length;
-    ordenesProceso.innerText = ordenesTrabajo.filter((orden) => orden.estado === 'En proceso').length;
-    ordenesFinalizadas.innerText = ordenesTrabajo.filter((orden) => orden.estado === 'Finalizada').length;
-    totalRepuestosOrdenes.innerText = formatCurrency(ordenesTrabajo.reduce((total, orden) => total + Number(orden.totalRepuestos || 0), 0));
+    if (estadoCargaOrdenes) { mostrarEstadoCargaOrdenestrabajo(); return; }
+    const ordenesMes = ordenesTrabajo.filter(orden => String(orden.fechaCreacion || '').slice(0, 7) === mesIndicadoresOrdenes.value);
+    totalOrdenesTrabajo.innerText = ordenesMes.length;
+    ordenesAbiertas.innerText = ordenesMes.filter(orden => ['Activa', 'Abierta'].includes(orden.estado)).length;
+    ordenesEspera.innerText = ordenesMes.filter(orden => orden.estado === 'Espera').length;
+    ordenesProceso.innerText = ordenesMes.filter(orden => orden.estado === 'En proceso').length;
+    ordenesFinalizadas.innerText = ordenesMes.filter(orden => orden.estado === 'Finalizada').length;
+    totalRepuestosOrdenes.innerText = inventarioRepuestos.reduce((total, repuesto) => total + Number(repuesto.existencia || 0), 0).toLocaleString('es-GT');
+}
+
+function formatOrderSearchInput(value, deleting = false) {
+    let text = value.toUpperCase().replace(/^(\p{L})-(?=[\p{L}\s])/u, '$1');
+    if (/^\p{L}$/u.test(text) && !deleting) return `${text}-`;
+    return text.replace(/^(\p{L})-?(?=\d)/u, '$1-');
+}
+
+function normalizarBusquedaOrden(value) {
+    return String(value ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 }
 
 function getOrdenesFiltradas() {
-    const busqueda = buscarOrdenTrabajo.value.trim().toLowerCase();
+    const busqueda = normalizarBusquedaOrden(buscarOrdenTrabajo.value.trim().replace(/^(\p{L})-$/u, '$1'));
     const estado = filtroEstadoOrdenTrabajo.value;
 
     return ordenesTrabajo.filter((orden) => {
@@ -975,25 +834,26 @@ function getOrdenesFiltradas() {
             orden.piloto,
             orden.mecanico,
             orden.departamento
-        ].filter(Boolean).some((value) => String(value).toLowerCase().includes(busqueda));
-        const coincideEstado = estado === 'todos' || orden.estado === estado;
+        ].filter(Boolean).some((value) => normalizarBusquedaOrden(value).includes(busqueda));
+        const coincideEstado = estado === 'todos' || (orden.estado === 'Abierta' ? 'Activa' : orden.estado) === estado;
 
         return coincideBusqueda && coincideEstado;
-    }).sort((ordenA, ordenB) => Number(ordenB.numero) - Number(ordenA.numero));
+    }).sort((ordenA, ordenB) => Number(ordenB.id) - Number(ordenA.id));
 }
 
 function renderOrdenesTrabajo() {
+    if (estadoCargaOrdenes) { mostrarEstadoCargaOrdenestrabajo(); return; }
     const ordenesFiltradas = getOrdenesFiltradas();
 
     tablaOrdenesTrabajo.innerHTML = ordenesFiltradas.map((orden, index) => `
         <tr>
-            <td>${orden.serie} - ${orden.numero}</td>
+            <td>${orden.estado === 'Espera' ? '' : `${orden.serie} - ${orden.numero}`}</td>
             <td>${orden.placa}</td>
             <td>${orden.vehiculo}</td>
             <td>${orden.piloto || 'Sin asignar'}</td>
             <td>${orden.mecanico || 'Sin asignar'}</td>
             <td>${formatFecha(orden.fechaEntrada)} ${formatHora(orden.horaEntrada, orden.periodoEntrada)}</td>
-            <td><span class="status ${getEstadoClass(orden.estado)}">${orden.estado}</span></td>
+            <td><div class="order-state-actions"><span class="status ${getEstadoClass(orden.estado)}">${orden.estado === 'Abierta' ? 'Activa' : orden.estado}</span>${orden.estado !== 'Entregado' ? `<button type="button" class="icon-action js-avanzar-orden" data-id="${orden.id}" title="${orden.estado === 'Espera' ? 'Completar orden' : orden.estado === 'Finalizada' ? 'Marcar como entregado' : orden.estado === 'En proceso' ? 'Finalizar trabajo' : 'Iniciar trabajo'}" aria-label="${orden.estado === 'Espera' ? 'Completar orden' : orden.estado === 'Finalizada' ? 'Marcar como entregado' : orden.estado === 'En proceso' ? 'Finalizar trabajo' : 'Iniciar trabajo'}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l4 4L19 6"/></svg></button>` : ''}</div></td>
             <td class="work-order-actions-cell">
                 <div class="table-actions">
                     <button class="icon-action js-ver-orden" type="button" data-index="${index}" aria-label="Ver detalle de orden ${orden.numero}">
@@ -1034,28 +894,43 @@ function renderOrdenesTrabajo() {
 }
 
 async function cargarDatosOrdenes() {
+    estadoCargaOrdenes = 'Cargando datos...';
+    btnNuevaOrdenTrabajo.disabled = true;
+    mostrarEstadoCargaOrdenestrabajo();
     try {
-        const [vehiculos, repuestos, ordenes] = await Promise.all([
+        const [vehiculos, repuestos, ordenes, servicios, mecanicos] = await Promise.all([
             window.api.vehiculos.list(),
             window.api.repuestos.list(),
-            window.api.ordenes.list()
+            window.api.ordenes.list(),
+            window.api.servicios.list(),
+            window.api.mecanicos.list()
         ]);
 
+        catalogoMecanicos = mecanicos;
+        document.getElementById('ordenServicios').replaceChildren(...servicios.map(servicio => {
+            const option = document.createElement('option'); option.value = servicio.id; option.dataset.tipoTrabajo = servicio.tipoTrabajo; option.textContent = servicio.nombre.replace(/\s*\((?:realizado|pendiente|cancelado|en proceso|finalizado)\)/gi, '').trim() + (servicio.tipoVehiculo && servicio.tipoVehiculo !== 'Todos' ? ' - ' + servicio.tipoVehiculo : ''); return option;
+        }));
         reemplazarContenido(catalogoVehiculos, vehiculos.map(mapVehiculoCatalogo));
         reemplazarContenido(inventarioRepuestos, repuestos);
         reemplazarContenido(ordenesTrabajo, ordenes);
+        estadoCargaOrdenes = null;
+        btnNuevaOrdenTrabajo.disabled = false;
         renderOrdenDatalists();
         renderRepuestosOrden();
         renderOrdenesTrabajo();
     } catch (error) {
-        alert(`No se pudieron cargar las ordenes de trabajo: ${error.message}`);
+        reemplazarContenido(ordenesTrabajo, []); reemplazarContenido(catalogoVehiculos, []); reemplazarContenido(inventarioRepuestos, []); renderOrdenDatalists();
+        estadoCargaOrdenes = 'No se pudieron cargar los datos. Revisa la conexion y vuelve a abrir el modulo.';
+        mostrarEstadoCargaOrdenestrabajo();
+        window.ui.alert(`No se pudieron cargar las ordenes de trabajo: ${error.message}`);
+        return false;
     }
 }
 
 formOrdenTrabajo.addEventListener('submit', async (event) => {
     event.preventDefault();
 
-    if (modoOrdenTrabajo === 'vista') {
+    if (modoOrdenTrabajo === 'vista' || estadoCargaOrdenes) {
         return;
     }
 
@@ -1063,10 +938,12 @@ formOrdenTrabajo.addEventListener('submit', async (event) => {
         return;
     }
 
-    validateTimeInput(ordenHoraSalida);
+    if (!validateTimeInput(ordenHoraSalida)) return;
 
     try {
-        const orden = getOrdenFormulario();
+        if (!await validacionIdentidadOrden.validate()) return;
+        if (!formOrdenTrabajo.reportValidity()) return;
+        const orden = window.ordenValidation.validarOrden(getOrdenFormulario());
 
         if (modoOrdenTrabajo === 'edicion' && ordenSeleccionadaId) {
             await window.api.ordenes.update(ordenSeleccionadaId, orden);
@@ -1078,19 +955,27 @@ formOrdenTrabajo.addEventListener('submit', async (event) => {
         await cargarDatosOrdenes();
         ocultarOrdenTrabajo();
     } catch (error) {
-        alert(`No se pudo guardar la orden de trabajo: ${error.message}`);
+        window.ui.alert(`No se pudo guardar la orden de trabajo: ${error.message}`);
     }
 });
 
 ordenPlaca.addEventListener('keydown', handlePlateKeydown);
-buscarOrdenTrabajo.addEventListener('keydown', handlePlateKeydown);
 ordenPlaca.addEventListener('input', () => {
     applyPlateFormat(ordenPlaca);
     autocompletarVehiculoPorPlaca();
 });
 ordenPlaca.addEventListener('change', autocompletarVehiculoPorPlaca);
-buscarOrdenTrabajo.addEventListener('input', () => {
-    applyPlateFormat(buscarOrdenTrabajo);
+buscarOrdenTrabajo.addEventListener('input', (event) => {
+    if (!event.isComposing) {
+        const before = buscarOrdenTrabajo.value;
+        const cursor = buscarOrdenTrabajo.selectionStart ?? before.length;
+        const formatted = formatOrderSearchInput(before, event.inputType?.startsWith('delete'));
+        if (formatted !== before) {
+            buscarOrdenTrabajo.value = formatted;
+            const position = cursor === 0 ? 0 : Math.max(0, Math.min(formatted.length, cursor + formatted.length - before.length));
+            buscarOrdenTrabajo.setSelectionRange?.(position, position);
+        }
+    }
     renderOrdenesTrabajo();
 });
 [ordenHoraEntrada, ordenHoraSalida].forEach((input) => {
@@ -1137,13 +1022,13 @@ tablaRepuestosOrden.addEventListener('click', (event) => {
         const cantidad = parseCantidadRepuesto(quantityInput?.value);
 
         if (!repuesto || !cantidad) {
-            alert('Ingresa una cantidad valida. Puedes usar enteros, decimales o fracciones como 1/2.');
+            window.ui.alert('Ingresa una cantidad valida. Puedes usar enteros, decimales o fracciones como 1/2.');
             quantityInput?.focus();
             return;
         }
 
-        if (cantidad.valor > Number(repuesto.existencia || 0)) {
-            alert('La cantidad no puede ser mayor que la existencia disponible.');
+        if (cantidad.valor > existenciaDisponibleOrden(repuesto.idRepuesto, repuesto.existencia)) {
+            window.ui.alert('La cantidad no puede ser mayor que la existencia disponible.');
             quantityInput.focus();
             return;
         }
@@ -1181,7 +1066,9 @@ modalOrdenTrabajo.addEventListener('click', (event) => {
         event.preventDefault();
     }
 });
-tablaOrdenesTrabajo.addEventListener('click', (event) => {
+tablaOrdenesTrabajo.addEventListener('click', async (event) => {
+    const avanzar = event.target.closest('.js-avanzar-orden');
+    if (avanzar) { await avanzarEstadoOrden(avanzar); return; }
     const detailButton = event.target.closest('.js-ver-orden');
     const editButton = event.target.closest('.js-editar-orden');
     const deleteButton = event.target.closest('.js-eliminar-orden');
@@ -1194,10 +1081,10 @@ tablaOrdenesTrabajo.addEventListener('click', (event) => {
         editarOrden(Number(editButton.dataset.index));
     }
 
-    if (deleteButton && confirm('Desea eliminar esta orden de trabajo?')) {
+    if (deleteButton && await window.ui.confirm('Desea eliminar esta orden de trabajo?', { title: 'Eliminar registro', confirmText: 'Eliminar', danger: true })) {
         window.api.ordenes.remove(Number(deleteButton.dataset.id))
             .then(cargarDatosOrdenes)
-            .catch((error) => alert(`No se pudo eliminar la orden: ${error.message}`));
+            .catch((error) => window.ui.alert(`No se pudo eliminar la orden: ${error.message}`));
     }
 });
 document.addEventListener('keydown', (event) => {
@@ -1206,4 +1093,175 @@ document.addEventListener('keydown', (event) => {
     }
 });
 
+const estadoDesdeNotificacion = new URLSearchParams(window.location.search).get('estado');
+if (['Espera', 'Activa', 'En proceso', 'Finalizada', 'Entregado'].includes(estadoDesdeNotificacion)) filtroEstadoOrdenTrabajo.value = estadoDesdeNotificacion;
 cargarDatosOrdenes();
+
+function mostrarEstadoCargaOrdenestrabajo() {
+    tablaOrdenesTrabajo.innerHTML = '<tr><td colspan="8" class="empty-row"></td></tr>';
+    tablaOrdenesTrabajo.querySelector('td').textContent = estadoCargaOrdenes;
+    [totalOrdenesTrabajo, ordenesAbiertas, ordenesEspera, ordenesProceso, ordenesFinalizadas, totalRepuestosOrdenes].forEach(indicador => { indicador.innerText = '--'; });
+}
+
+
+function tiposTrabajoOpciones() {
+    return [['ordenManoMecanico', 'Mecanico'], ['ordenManoElectronico', 'Electrico'], ['ordenManoPintura', 'Enderezado y Pintura'], ['ordenManoPinchazo', 'Pinchazo']];
+}
+
+function validarProximoKilometraje() {
+    const input = document.getElementById('ordenProximoServicio');
+    const actual = document.getElementById('ordenKilometraje').value;
+    const value = input.value.trim();
+    const alerta = /^\d+(?:\.\d+)?$/.test(value) && actual !== '' && Number(value) < Number(actual)
+        ? `El proximo kilometraje no puede ser menor al registrado (${actual} km).` : '';
+    input.setCustomValidity(alerta);
+    document.getElementById('ordenKmValidacion').textContent = alerta;
+}
+document.getElementById('ordenProximoServicio').addEventListener('input', validarProximoKilometraje);
+document.getElementById('ordenKilometraje').addEventListener('input', validarProximoKilometraje);
+
+function servicioCorrespondeTrabajo(option) {
+    const tipos = tiposTrabajoOpciones().filter(([id]) => document.getElementById(id).checked).map(([, nombre]) => normalizarBusquedaOrden(nombre));
+    return tipos.includes(normalizarBusquedaOrden(option.dataset.tipoTrabajo || ''));
+}
+
+
+function renderOpcionesTrabajo() {
+    const tipos = tiposTrabajoOpciones().filter(([id]) => document.getElementById(id).checked);
+    if (modoOrdenTrabajo !== 'vista') {
+        Array.from(document.getElementById('ordenServicios').options).forEach(option => {
+            if (!servicioCorrespondeTrabajo(option)) option.selected = false;
+        });
+    }
+    const servicios = Array.from(document.getElementById('ordenServicios').options).filter(option => option.selected);
+    const tipo = document.getElementById('ordenTipoTrabajoBusqueda');
+    // Mantener visibles las selecciones historicas multiples hasta que se cambien.
+    const value = tipos.map(([, nombre]) => nombre).join(', ');
+    if (tipos.length > 1 && !Array.from(tipo.options).some(option => option.value === value)) {
+        const option = document.createElement('option'); option.value = value; option.textContent = value; tipo.append(option);
+    }
+    tipo.value = value;
+    document.getElementById('ordenServicioBusqueda').value = servicios.map(option => option.textContent).join(', ');
+    document.getElementById('ordenServicioBusqueda').setCustomValidity?.('');
+    document.getElementById('ordenServicioBusqueda').required = false;
+    document.getElementById('ordenServicioSelector').required = true;
+    document.getElementById('ordenServicioBusqueda').hidden = true;
+    document.getElementById('ordenServicioSelector').hidden = false;
+    sincronizarSelectorServicio();
+    actualizarSugerenciasServicio();
+}
+
+function actualizarSugerenciasServicio() {
+    const palabras = normalizarBusquedaOrden(document.getElementById('ordenServicioBusqueda').value).trim().split(/\s+/).filter(Boolean);
+    const opciones = Array.from(document.getElementById('ordenServicios').options).filter(option => servicioCorrespondeTrabajo(option) && palabras.every(palabra => normalizarBusquedaOrden(option.textContent).includes(palabra)));
+    document.getElementById('ordenServiciosSugeridos').innerHTML = opciones.map(option => `<option value="${escapeHtml(option.textContent)}"></option>`).join('');
+}
+
+function seleccionarServicio() {
+    if (modoOrdenTrabajo === 'vista') return;
+    const input = document.getElementById('ordenServicioBusqueda');
+    const value = normalizarBusquedaOrden(input.value.trim());
+    const opciones = Array.from(document.getElementById('ordenServicios').options);
+    const actual = normalizarBusquedaOrden(opciones.filter(option => option.selected).map(option => option.textContent).join(', '));
+    if (actual === value) { input.setCustomValidity?.(''); return; }
+    const coincidencias = opciones.filter(option => servicioCorrespondeTrabajo(option) && normalizarBusquedaOrden(option.textContent) === value);
+    const valida = !value || coincidencias.length === 1;
+    input.setCustomValidity?.(valida ? '' : 'Selecciona un servicio del catalogo.');
+    if (!valida) return;
+    opciones.forEach(option => { option.selected = option === coincidencias[0]; });
+    if (coincidencias[0]) input.value = coincidencias[0].textContent;
+    sincronizarSelectorServicio();
+}
+
+document.getElementById('ordenTipoTrabajoBusqueda').addEventListener('change', () => {
+    if (modoOrdenTrabajo === 'vista') return;
+    const value = document.getElementById('ordenTipoTrabajoBusqueda').value;
+    tiposTrabajoOpciones().forEach(([id, nombre]) => { document.getElementById(id).checked = value.split(', ').includes(nombre); });
+    Array.from(document.getElementById('ordenServicios').options).forEach(option => { if (!servicioCorrespondeTrabajo(option)) option.selected = false; });
+    renderOpcionesTrabajo();
+});
+document.getElementById('ordenServicioBusqueda').addEventListener('input', () => { actualizarSugerenciasServicio(); seleccionarServicio(); });
+document.getElementById('ordenServicioBusqueda').addEventListener('change', seleccionarServicio);
+
+function sincronizarSelectorServicio() {
+    const opciones = Array.from(document.getElementById('ordenServicios').options).filter(servicioCorrespondeTrabajo);
+    const seleccion = opciones.filter(option => option.selected);
+    const selector = document.getElementById('ordenServicioSelector');
+    const tieneTipo = tiposTrabajoOpciones().some(([id]) => document.getElementById(id).checked);
+    selector.disabled = modoOrdenTrabajo === 'vista' || !tieneTipo;
+    selector.innerHTML = `<option value="">${!tieneTipo ? 'Selecciona primero el tipo de trabajo' : opciones.length ? 'Selecciona el servicio' : 'No hay servicios para este tipo de trabajo'}</option>` + opciones.map(option => `<option value="${escapeHtml(option.value)}">${escapeHtml(option.textContent)}</option>`).join('');
+    if (seleccion.length > 1) {
+        const option = document.createElement('option'); option.value = 'historicos'; option.textContent = seleccion.map(item => item.textContent).join(', '); selector.append(option);
+    }
+    selector.value = seleccion.length > 1 ? 'historicos' : seleccion[0]?.value || '';
+}
+function abrirServicioManual(event) {
+    if (modoOrdenTrabajo === 'vista') return;
+    if (!tiposTrabajoOpciones().some(([id]) => document.getElementById(id).checked)) return;
+    event?.preventDefault();
+    const input = document.getElementById('ordenServicioBusqueda');
+    document.getElementById('ordenServicioSelector').hidden = true;
+    document.getElementById('ordenServicioSelector').required = false;
+    input.required = true;
+    input.hidden = false; input.focus(); input.select?.();
+}
+document.getElementById('ordenServicioSelector').addEventListener('dblclick', abrirServicioManual);
+document.getElementById('ordenServicioSelector').addEventListener('mousedown', event => { if (event.detail === 2) abrirServicioManual(event); });
+document.getElementById('ordenServicioSelector').addEventListener('change', () => {
+    if (modoOrdenTrabajo === 'vista') return;
+    const value = document.getElementById('ordenServicioSelector').value;
+    if (value === 'historicos') return;
+    Array.from(document.getElementById('ordenServicios').options).forEach(option => { option.selected = servicioCorrespondeTrabajo(option) && String(option.value) === value; });
+    renderOpcionesTrabajo();
+});
+document.getElementById('ordenServicioBusqueda').addEventListener('blur', () => {
+    seleccionarServicio();
+    const input = document.getElementById('ordenServicioBusqueda');
+    if (input.validity && !input.validity.valid) return;
+    input.hidden = true; document.getElementById('ordenServicioSelector').hidden = false;
+});
+document.getElementById('ordenServicioBusqueda').addEventListener('keydown', event => {
+    if (event.key === 'Enter') { event.preventDefault(); seleccionarServicio(); if (event.target.reportValidity()) event.target.blur(); }
+    if (event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); renderOpcionesTrabajo(); document.getElementById('ordenServicioSelector').focus(); }
+});
+
+document.getElementById('ordenSerie').addEventListener('input', event => { event.target.value = event.target.value.toUpperCase(); });
+async function avanzarEstadoOrden(boton) {
+    if (boton.disabled) return;
+    boton.disabled = true;
+    try {
+        const orden = (await window.api.ordenes.list()).find(item => item.id === Number(boton.dataset.id));
+        if (orden?.estado === 'Espera') {
+            await cargarDatosOrdenes();
+            const index = getOrdenesFiltradas().findIndex(item => item.id === orden.id);
+            if (index >= 0) editarOrden(index);
+            return;
+        }
+        if (!orden || !['Activa', 'Abierta', 'En proceso', 'Finalizada'].includes(orden.estado)) { await cargarDatosOrdenes(); return; }
+        const estado = ['Activa', 'Abierta'].includes(orden.estado) ? 'En proceso' : orden.estado === 'En proceso' ? 'Finalizada' : 'Entregado';
+        const hoy = new Date();
+        const fecha = `${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}-${String(hoy.getDate()).padStart(2,'0')}`;
+        const mensaje = estado === 'Entregado' ? `Marcar la orden ${orden.numero} como entregada?` : estado === 'Finalizada' ? `Finalizar la orden ${orden.numero}? Se registrara la salida con fecha ${fecha} y se calcularan los mantenimientos.` : `Iniciar el trabajo de la orden ${orden.numero}?`;
+        if (!await window.ui.confirm(mensaje, {title:'Estado de la orden', confirmText: estado === 'Entregado' ? 'Entregar' : estado === 'Finalizada' ? 'Finalizar' : 'Iniciar', tone:'success'})) return;
+        const cambios = { ...orden, estado };
+        if (estado === 'Finalizada') {
+            cambios.fechaSalida = fecha;
+            cambios.horaSalida = `${String(hoy.getHours()%12 || 12).padStart(2,'0')}:${String(hoy.getMinutes()).padStart(2,'0')}`;
+            cambios.periodoSalida = hoy.getHours() >= 12 ? 'PM' : 'AM';
+        }
+        await window.api.ordenes.update(orden.id, cambios);
+        await cargarDatosOrdenes();
+    } catch (error) { await window.ui.alert(`No se pudo cambiar el estado: ${error.message}`); }
+    finally { boton.disabled = false; }
+}
+
+const validacionIdentidadOrden = window.liveValidation.crear({
+    inputs: [document.getElementById('ordenNumero'), document.getElementById('ordenSerie')],
+    message: document.getElementById('ordenIdentidadValidacion'),
+    read: () => {
+        const numero = getOrdenFieldValue('ordenNumero').trim();
+        return numero ? { numero, serie: getOrdenFieldValue('ordenSerie').trim().toUpperCase() || 'SERIE A', id: ordenSeleccionadaId } : null;
+    },
+    check: ({ numero, serie, id }) => window.api.ordenes.checkIdentidad(numero, serie, id),
+    duplicateMessage: 'Ya existe una orden con ese numero y serie.'
+});
