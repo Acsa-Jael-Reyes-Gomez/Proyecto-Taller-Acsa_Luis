@@ -8,8 +8,11 @@ const config = require('node:util').parseEnv(fs.readFileSync(envPath, 'utf8'));
 for (const key of ['DB_HOST', 'DB_PORT', 'DB_USER', 'DB_NAME', 'DB_PASSWORD']) {
     if (!config[key]) throw new Error(`Falta ${key} en .env`);
 }
+const childEnv = { ...process.env, ...config };
+// Las terminales de algunos editores fuerzan Electron a ejecutarse como Node.
+delete childEnv.ELECTRON_RUN_AS_NODE;
 const child = spawn(require('electron'), ['.'], {
-    cwd: path.join(__dirname, '..'), stdio: 'inherit', env: { ...process.env, ...config }
+    cwd: path.join(__dirname, '..'), stdio: 'inherit', env: childEnv
 });
 child.on('error', error => { console.error(error.message); process.exitCode = 1; });
 child.on('exit', code => { process.exitCode = code ?? 1; });

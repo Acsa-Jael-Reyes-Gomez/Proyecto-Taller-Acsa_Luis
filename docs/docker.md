@@ -78,6 +78,6 @@ El puerto de MySQL esta publicado solo en 127.0.0.1. Las fotos guardadas por Ele
 
 ## Estado de validacion
 
-La estructura se obtuvo mediante consultas de solo lectura a la base local. Docker no estaba instalado en el equipo al preparar esta configuracion; el arranque, la importacion y la prueba completa en MySQL 8.4 quedan pendientes de ejecutarse con Docker Desktop.
+Validacion realizada el 16 de noviembre de 2026 con Docker Desktop y MySQL 8.4.13: importacion de 22 tablas y una vista, estado healthy, creacion y autenticacion del administrador, consultas de usuarios, clientes, vehiculos, repuestos, ordenes, mecanicos, historial, servicios y recepciones, dashboard y generacion de recordatorios. Se verifico que el administrador se conserva despues de down/up. Falta la demostracion manual completa de registro y cierre de atenciones desde la interfaz.
 
 Referencias: https://hub.docker.com/_/mysql y https://docs.docker.com/guides/databases/
