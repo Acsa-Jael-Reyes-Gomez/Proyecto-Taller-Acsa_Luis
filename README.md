@@ -16,6 +16,8 @@ Aplicacion de escritorio hecha con Electron para gestionar informacion de un tal
 
 ## Comandos
 
+Para ejecutar MySQL en Docker, consulta [la guia Docker](docs/docker.md). Incluye instalacion, cuenta de demostracion, conexion de Electron y evidencias de funcionamiento.
+
 ```powershell
 npm install
 npm start

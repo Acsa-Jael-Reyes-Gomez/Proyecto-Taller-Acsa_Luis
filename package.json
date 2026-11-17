@@ -5,7 +5,13 @@
   "description": "Aplicacion Electron para gestion de taller mecanico.",
   "main": "main.js",
   "scripts": {
-    "start": "electron ."
+    "start": "electron .",
+    "db:up": "docker compose up -d --wait",
+    "db:down": "docker compose down",
+    "db:status": "docker compose ps",
+    "db:logs": "docker compose logs --tail=100 db",
+    "start:docker": "node scripts/start-docker-db.js",
+    "db:admin": "node scripts/docker-admin.js"
   },
   "keywords": [],
   "author": "",

@@ -1,5 +1,7 @@
 const mysql = require('mysql2/promise');
-const localConfig = require('./db-config');
+const fs = require('node:fs');
+const path = require('node:path');
+const localConfig = fs.existsSync(path.join(__dirname, 'db-config.js')) ? require('./db-config') : {};
 const { validarCliente } = require('./scripts/cliente-validation');
 
 const dbConfig = {
