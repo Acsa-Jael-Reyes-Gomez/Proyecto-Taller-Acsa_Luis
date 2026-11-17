@@ -11,12 +11,13 @@
         try {
             const photos = await api.list(snapshot);
             if (current !== version) return;
-            const nodes = photos.map(photo => {
+            const nodes = photos.map((photo, index) => {
                 const card = document.createElement('figure'), caption = document.createElement('figcaption');
-                caption.textContent = `${photo.nombre} · ${photo.origen}`;
+                const nombreVisible = `Foto ${index + 1}`;
+                caption.textContent = `${nombreVisible} · ${photo.origen}`;
                 if (photo.miniatura) {
                     const button = document.createElement('button'), image = document.createElement('img');
-                    button.type = 'button'; button.setAttribute('aria-label', `Ver ${photo.nombre}`); image.src = photo.miniatura; image.alt = photo.nombre;
+                    button.type = 'button'; button.setAttribute('aria-label', `Ver ${nombreVisible}`); image.src = photo.miniatura; image.alt = nombreVisible;
                     button.append(image); button.addEventListener('click', async () => {
                         try { const full = await api.view(snapshot, photo.id_foto); if (snapshot !== id) return; field('verFotoRecepcionImagen').src = full; field('verFotoRecepcionDialog').showModal(); }
                         catch (error) { message.textContent = error.message; }
@@ -24,7 +25,7 @@
                 } else { const error = document.createElement('p'); error.textContent = photo.error; card.append(error); }
                 const remove = document.createElement('button');
                 remove.type = 'button'; remove.className = 'reception-photo-remove'; remove.textContent = '\u00d7';
-                remove.setAttribute('aria-label', `Quitar ${photo.nombre}`); remove.disabled = busy || saving;
+                remove.setAttribute('aria-label', `Quitar ${nombreVisible}`); remove.disabled = busy || saving;
                 remove.addEventListener('click', async () => {
                     if (busy || saving || snapshot !== id) return;
                     busy = true; buttons();

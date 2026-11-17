@@ -11,11 +11,15 @@ contextBridge.exposeInMainWorld('api', {
     },
     mecanicos: { remove: id => invoke('mecanicos:delete', id), checkDpi: (dpi, id) => invoke('mecanicos:check-dpi', dpi, id), list: () => invoke('mecanicos:list'), save: (id, value) => invoke('mecanicos:save', id, value) },
     historial: { list: () => invoke('historial:list') },
-    dashboard: { get: () => invoke('dashboard:get') },
+    dashboard: { get: () => invoke('dashboard:get'), registrarNotificacionMantenimiento: id => invoke('dashboard:notification-sent', id) },
     servicios: { list: (tipoVehiculo) => invoke('servicios:list', tipoVehiculo) },
     auth: {
-        login: (usuario, password) => invoke('auth:login', usuario, password)
+        login: (usuario, password) => invoke('auth:login', usuario, password),
+        logout: () => invoke('auth:logout'),
+        onLoggedOut: callback => ipcRenderer.on('auth:logged-out', callback),
+        onRoleChanged: callback => ipcRenderer.on('auth:role-changed', (_event, role) => callback(role))
     },
+    usuarios: { list: () => invoke('usuarios:list'), setRole: (id, role) => invoke('usuarios:role', id, role) },
     vehiculos: {
         kilometraje: (id, km) => invoke('vehiculos:kilometraje', id, km),
         setEstado: (id, estado) => invoke('vehiculos:estado', id, estado),

@@ -32,6 +32,9 @@
             field('recepcionVehiculo').value = draft.values.recepcionVehiculo || '';
             updateVehicle();
             for (const id of draftFields) field(id).value = draft.values[id] ?? '';
+            const placaNueva = params.get('placa');
+            if (placaNueva) field('recepcionVehiculo').value = placaNueva;
+            updateVehicle();
             for (const id of draftChecks) field(id).checked = Boolean(draft.checks[id]);
             for (const radio of form.querySelectorAll('input[name="combustible"]')) radio.checked = radio.value === draft.fuel;
             const clientId = params.get('cliente');

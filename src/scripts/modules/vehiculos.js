@@ -19,6 +19,14 @@ let vehiculos = [];
 let clientesDisponibles = [];
 let estadoCargaVehiculos = 'Cargando datos...';
 const clienteContextoId = Number(new URLSearchParams(window.location.search).get('cliente')) || null;
+const paramsVehiculo = new URLSearchParams(window.location.search);
+const contextoRecepcionVehiculo = (() => {
+    if (paramsVehiculo.get('origen') !== 'recepcion') return null;
+    try {
+        const draft = JSON.parse(sessionStorage.getItem('recepcionNuevoCliente') || 'null');
+        return draft?.token === paramsVehiculo.get('retorno') ? draft.token : null;
+    } catch { return null; }
+})();
 let guardandoVehiculo = false;
 
 function getEstadoClass(estado) {
@@ -381,12 +389,17 @@ formVehiculo.addEventListener('submit', async (event) => {
         guardandoVehiculo = true;
         btnGuardarVehiculo.disabled = true;
 
+        const placaGuardada = vehiculo.placa;
         if (modoRegistroVehiculo === 'edicion' && vehiculoSeleccionadoId) {
             await window.api.vehiculos.update(vehiculoSeleccionadoId, vehiculo);
         } else {
             await window.api.vehiculos.create(vehiculo);
         }
 
+        if (contextoRecepcionVehiculo) {
+            window.location.href = `recepcion.html?cliente=${encodeURIComponent(clienteContextoId)}&placa=${encodeURIComponent(placaGuardada)}&retorno=${encodeURIComponent(contextoRecepcionVehiculo)}`;
+            return;
+        }
         if (clienteContextoId) {
             window.location.href = `pilotos.html?cliente=${encodeURIComponent(clienteContextoId)}`;
             return;

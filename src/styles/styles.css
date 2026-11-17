@@ -20,6 +20,7 @@ body{
 .sidebar{
     width:236px;
     height:100vh;
+    min-height:0;
     padding:16px 12px 18px;
     box-sizing:border-box;
     background:rgba(15,23,42,0.82);
@@ -43,6 +44,7 @@ body{
     align-items:center;
     justify-content:space-between;
     margin-bottom:28px;
+    flex:0 0 auto;
 }
 
 .sidebar-header h2{
@@ -106,13 +108,31 @@ body{
 }
 
 .sidebar-nav{
+    flex:1 1 0;
     min-height:0;
     padding-bottom:8px;
-    overflow:visible;
+    overflow-x:hidden;
+    overflow-y:auto;
+    overscroll-behavior:contain;
+    scrollbar-width:thin;
+    scrollbar-color:rgba(125,211,252,.38) transparent;
     display:flex;
     flex-direction:column;
     gap:8px;
 }
+
+.sidebar-account{margin-top:8px;display:flex;flex-direction:column;gap:10px;padding:10px;border:1px solid rgba(148,163,184,.22);border-radius:12px;background:rgba(15,23,42,.88);min-width:0;width:100%;box-sizing:border-box;flex:0 0 auto;position:relative;z-index:2}
+.sidebar-account-identity{display:flex;flex-direction:column;gap:3px;min-width:0}
+.sidebar-account-identity strong,.sidebar-account-identity span{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.35}
+.sidebar-account-identity strong{font-size:13px;color:#f8fafc}.sidebar-account-identity span{font-size:11px;color:#7dd3fc}
+.sidebar-account-mark{display:none}
+.sidebar .sidebar-logout{width:100%;padding:8px 10px;text-align:center;background:rgba(248,113,113,.16);color:#fecaca;font-size:13px}
+.sidebar.collapsed .sidebar-account-identity,html[data-sidebar-collapsed] .sidebar .sidebar-account-identity{display:none}
+.sidebar.collapsed .sidebar-account-mark,html[data-sidebar-collapsed] .sidebar .sidebar-account-mark{display:flex;width:42px;height:42px;align-items:center;justify-content:center;margin:0 auto;border-radius:50%;background:rgba(125,211,252,.2);color:#e0f2fe;font-weight:700;font-size:13px}
+.sidebar.collapsed .sidebar-account,html[data-sidebar-collapsed] .sidebar .sidebar-account{padding:5px;border:0;background:transparent}
+.sidebar.collapsed .sidebar-logout,html[data-sidebar-collapsed] .sidebar .sidebar-logout{font-size:0;width:46px;min-height:44px;margin:auto;padding:8px}
+.sidebar.collapsed .sidebar-logout::before,html[data-sidebar-collapsed] .sidebar .sidebar-logout::before{content:'↪';font-size:23px}
+@media(max-height:560px){.sidebar{gap:5px;padding-top:9px;padding-bottom:9px}.sidebar-header{margin-bottom:8px}.sidebar-nav{gap:5px}.sidebar .nav-button{min-height:38px}.sidebar.collapsed .nav-button,html[data-sidebar-collapsed] .sidebar .nav-button{min-height:36px}.sidebar-account{gap:6px;padding:7px}.sidebar .sidebar-logout{min-height:36px;padding:6px}}
 
 .nav-button{
     width:100%;
@@ -529,6 +549,10 @@ body{
 .sidebar.collapsed .sidebar-brand, html[data-sidebar-collapsed] .sidebar .sidebar-brand{justify-content:center}
 .sidebar.collapsed .recepcion-notification-panel h2, html[data-sidebar-collapsed] .sidebar .recepcion-notification-panel h2{opacity:1;max-width:none}
 .notification-status{display:block;width:fit-content;margin-top:7px;padding:3px 8px;border-radius:6px;font-size:11px;font-weight:700}
+.notification-service-status{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.notification-service-status .notification-status{margin-top:7px}
+.notification-alert-count{display:inline-flex;align-items:center;gap:4px;margin-top:7px;padding:3px 7px;border:1px solid rgba(148,163,184,.22);border-radius:7px;background:rgba(15,23,42,.42);color:#cbd5e1;font-size:10px;font-weight:700;font-variant-numeric:tabular-nums}
+.notification-alert-count svg{width:13px;height:13px;fill:none;stroke:#fbbf24;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .notification-status.upcoming{background:rgba(56,189,248,.15);color:#7dd3fc}
 .notification-status.urgent{background:rgba(245,158,11,.15);color:#fcd34d}
 .notification-status.overdue{background:rgba(239,68,68,.15);color:#fca5a5}

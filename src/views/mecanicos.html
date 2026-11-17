@@ -10,7 +10,7 @@
     <link rel="stylesheet" href="../styles/dialogs.css">
 <link rel="stylesheet" href="../styles/modules/mecanicos.css"></head>
 
-<body class="dashboard-body">
+<body class="dashboard-body mechanics-page">
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-header">
             <div class="sidebar-brand"><h2>Taller</h2>
@@ -123,7 +123,25 @@
                     <span class="metric-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="9" cy="7" r="3"/><path d="M3 21v-3a6 6 0 0 1 12 0v3M16 4a3 3 0 0 1 0 6m2 4a5 5 0 0 1 3 4v3"/></svg></span>
                     <strong id="totalMecanicos">0</strong>
                 </article>
+                <article class="metric-card mecanicos-indicador mechanic-month-filter">
+                    <span>Entregas por fecha</span>
+                    <div class="mechanic-date-range">
+                        <label for="filtroDesdeOrdenesEntregadas">Desde<input id="filtroDesdeOrdenesEntregadas" type="date" aria-label="Fecha inicial de órdenes entregadas"></label>
+                        <label for="filtroHastaOrdenesEntregadas">Hasta<input id="filtroHastaOrdenesEntregadas" type="date" aria-label="Fecha final de órdenes entregadas"></label>
+                    </div>
+                    <small>Elige el rango que quieres consultar</small>
+                </article>
             </div>
+            <section class="mechanic-charts" aria-label="Resumen de órdenes por mecánico">
+                <article class="mechanic-chart-card">
+                    <div class="mechanic-chart-heading"><div><h2>Órdenes en trabajo</h2><p>Activas, en proceso y finalizadas</p></div><strong id="totalOrdenesEnTrabajoGrafica">0</strong></div>
+                    <div class="mechanic-chart-layout"><canvas id="graficaOrdenesEnTrabajo" role="img" aria-label="Gráfica de órdenes actuales por mecánico"></canvas><ul id="leyendaOrdenesEnTrabajo" class="mechanic-chart-legend"></ul></div>
+                </article>
+                <article class="mechanic-chart-card">
+                    <div class="mechanic-chart-heading"><div><h2>Órdenes entregadas</h2><p id="periodoOrdenesEntregadas">Mes actual</p></div><strong id="totalOrdenesEntregadasGrafica">0</strong></div>
+                    <div class="mechanic-chart-layout"><canvas id="graficaOrdenesEntregadas" role="img" aria-label="Gráfica de órdenes entregadas este mes por mecánico"></canvas><ul id="leyendaOrdenesEntregadas" class="mechanic-chart-legend"></ul></div>
+                </article>
+            </section>
             <section class="dashboard-panel vehicle-table-panel">
                 <div class="vehicle-toolbar"><label class="search-box"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M16 16l4 4"/></svg><input id="buscarMecanico" type="search" placeholder="Buscar por nombre, DPI o correo"></label></div>
                 <p id="mecanicosEstado" role="status"></p>

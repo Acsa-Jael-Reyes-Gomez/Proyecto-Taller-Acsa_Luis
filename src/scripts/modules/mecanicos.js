@@ -1,6 +1,12 @@
 let mecanicos = [], mecanicoId = null, modoMecanico = 'nuevo', guardandoMecanico = false;
 let focoMecanico;
 let ordenesMecanicos = [];
+let periodoGraficaActual = '';
+const coloresGraficasMecanicos = [
+ '#ef4444','#facc15','#3b82f6','#f97316','#22c55e','#8b5cf6',
+ '#ec4899','#06b6d4','#84cc16','#6366f1','#14b8a6','#f472b6',
+ '#0ea5e9','#a3e635','#d946ef','#fb7185','#2dd4bf','#818cf8'
+];
 const camposMecanico = ['nombre','edad','dpi','correo','direccion','fecha_contratacion'];
 const nodoMecanico = id => document.getElementById(id);
 const normalizarMecanico = value => String(value ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
@@ -60,6 +66,109 @@ function renderIndicadoresMecanicos() {
  nodoMecanico('nombreMecanicoIndicador').textContent = mecanico?.nombre || 'Todos los mecanicos';
  nodoMecanico('ordenesMecanicoSeleccionado').textContent = rows.length;
 }
+function idMecanicoDeOrden(orden) {
+ const id = Number(orden.idMecanico);
+ if (Number.isInteger(id) && id > 0 && mecanicos.some(m => Number(m.id_mecanico) === id)) return String(id);
+ const nombre = normalizarMecanico(orden.mecanico);
+ const mecanico = mecanicos.find(m => normalizarMecanico(m.nombre) === nombre);
+ return mecanico ? String(mecanico.id_mecanico) : null;
+}
+function contarOrdenesPorMecanico(ordenes) {
+ const conteos = new Map(mecanicos.map(m => [String(m.id_mecanico), {nombre:m.nombre, cantidad:0}]));
+ for (const orden of ordenes) {
+  const id = idMecanicoDeOrden(orden);
+  if (id && conteos.has(id)) conteos.get(id).cantidad++;
+ }
+ return Array.from(conteos.values());
+}
+function aclararColorGrafica(hex, factor) {
+ const valor = hex.replace('#', '');
+ const canales = [0,2,4].map(indice => parseInt(valor.slice(indice, indice + 2), 16));
+ return `rgb(${canales.map(canal => Math.round(canal + (255 - canal) * factor)).join(',')})`;
+}
+function oscurecerColorGrafica(hex, factor) {
+ const valor = hex.replace('#', '');
+ const canales = [0,2,4].map(indice => parseInt(valor.slice(indice, indice + 2), 16));
+ return `rgb(${canales.map(canal => Math.round(canal * (1 - factor))).join(',')})`;
+}
+function dibujarGraficaPastel(canvas, leyenda, datos, titulo) {
+ const rect = canvas.getBoundingClientRect();
+ const size = Math.max(120, Math.min(190, rect.width || 190));
+ const escala = window.devicePixelRatio || 1;
+ canvas.width = Math.round(size * escala); canvas.height = Math.round(size * escala);
+ canvas.style.height = `${size}px`;
+ const context = canvas.getContext('2d');
+ context.setTransform(escala, 0, 0, escala, 0, 0);
+ const centro = size / 2, radio = size * .43;
+ const total = datos.reduce((suma, item) => suma + item.cantidad, 0);
+ context.clearRect(0, 0, size, size);
+ if (!total) {
+  context.beginPath(); context.arc(centro, centro, radio, 0, Math.PI * 2); context.fillStyle = 'rgba(148,163,184,.18)'; context.fill();
+  context.fillStyle = '#cbd5e1'; context.font = '600 12px Segoe UI, sans-serif'; context.textAlign = 'center'; context.textBaseline = 'middle'; context.fillText('Sin órdenes', centro, centro);
+  canvas.setAttribute('aria-label', `${titulo}: sin ordenes registradas`);
+ } else {
+  let inicio = -Math.PI / 2;
+  datos.forEach((item, index) => {
+   if (!item.cantidad) return;
+   const fin = inicio + Math.PI * 2 * item.cantidad / total;
+   const separacion = .035;
+   const inicioSeparado = inicio + separacion;
+   const finSeparado = Math.max(inicioSeparado, fin - separacion);
+   const medio = (inicioSeparado + finSeparado) / 2;
+   const desplazamiento = 4;
+   context.beginPath();
+   context.moveTo(centro + Math.cos(medio) * desplazamiento, centro + Math.sin(medio) * desplazamiento);
+   context.arc(centro + Math.cos(medio) * desplazamiento, centro + Math.sin(medio) * desplazamiento, radio, inicioSeparado, finSeparado);
+   context.closePath();
+   const tono = coloresGraficasMecanicos[index % coloresGraficasMecanicos.length];
+   const brillo = context.createRadialGradient(centro * .76, centro * .68, 0, centro, centro, radio);
+   brillo.addColorStop(0, aclararColorGrafica(tono, .34)); brillo.addColorStop(.38, tono); brillo.addColorStop(1, oscurecerColorGrafica(tono, .48));
+   context.fillStyle = brillo; context.fill();
+   inicio = fin;
+  });
+  canvas.setAttribute('aria-label', `${titulo}: ${datos.filter(item => item.cantidad).map(item => `${item.nombre}, ${item.cantidad}`).join('; ')}`);
+ }
+ leyenda.replaceChildren(...datos.map((item, index) => {
+  const fila = document.createElement('li');
+  const muestra = document.createElement('span'); muestra.className = 'mechanic-chart-swatch'; muestra.style.backgroundColor = coloresGraficasMecanicos[index % coloresGraficasMecanicos.length]; muestra.style.color = coloresGraficasMecanicos[index % coloresGraficasMecanicos.length];
+  const nombre = document.createElement('span'); nombre.className = 'mechanic-chart-name'; nombre.textContent = item.nombre;
+  const valor = document.createElement('span'); valor.className = 'mechanic-chart-value';
+  const cantidad = document.createElement('strong'); cantidad.textContent = String(item.cantidad);
+  const porcentaje = document.createElement('small'); porcentaje.textContent = total ? `${Math.round(item.cantidad / total * 100)}%` : '0%';
+  valor.append(cantidad, porcentaje);
+  fila.append(muestra, nombre, valor); return fila;
+ }));
+}
+function renderGraficasMecanicos() {
+ const estadosEnTrabajo = new Set(['Activa','Abierta','En proceso','Finalizada']);
+ const enTrabajo = contarOrdenesPorMecanico(ordenesMecanicos.filter(orden => estadosEnTrabajo.has(orden.estado)));
+ const hoy = new Date();
+ const mesActual = `${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}`;
+ const desde = nodoMecanico('filtroDesdeOrdenesEntregadas');
+ const hasta = nodoMecanico('filtroHastaOrdenesEntregadas');
+ const inicioMes = `${mesActual}-01`;
+ const hoyTexto = `${mesActual}-${String(hoy.getDate()).padStart(2,'0')}`;
+ if (!desde.value) desde.value = inicioMes;
+ if (!hasta.value) hasta.value = hoyTexto;
+ desde.max = hoyTexto; hasta.max = hoyTexto;
+ if (desde.value > hasta.value) hasta.value = desde.value;
+ const fechaDesde = desde.value || inicioMes;
+ const fechaHasta = hasta.value || hoyTexto;
+ periodoGraficaActual = mesActual;
+ const entregadas = contarOrdenesPorMecanico(ordenesMecanicos.filter(orden => {
+  if (orden.estado !== 'Entregado') return false;
+  const fechaEntrega = String(orden.fechaEntrega || orden.fechaActualizacion || orden.fechaSalida || orden.fechaCreacion || '').slice(0,10);
+  return fechaEntrega >= fechaDesde && fechaEntrega <= fechaHasta;
+ }));
+ const totalTrabajo = enTrabajo.reduce((suma, item) => suma + item.cantidad, 0);
+ const totalEntregadas = entregadas.reduce((suma, item) => suma + item.cantidad, 0);
+ nodoMecanico('totalOrdenesEnTrabajoGrafica').textContent = totalTrabajo;
+ nodoMecanico('totalOrdenesEntregadasGrafica').textContent = totalEntregadas;
+ const fechaCorta = valor => new Date(`${valor}T12:00:00`).toLocaleDateString('es-GT', {day:'2-digit',month:'short',year:'numeric'});
+ nodoMecanico('periodoOrdenesEntregadas').textContent = `${fechaCorta(fechaDesde)} – ${fechaCorta(fechaHasta)}`;
+ dibujarGraficaPastel(nodoMecanico('graficaOrdenesEnTrabajo'), nodoMecanico('leyendaOrdenesEnTrabajo'), enTrabajo, 'Ordenes en trabajo');
+ dibujarGraficaPastel(nodoMecanico('graficaOrdenesEntregadas'), nodoMecanico('leyendaOrdenesEntregadas'), entregadas, 'Ordenes entregadas este mes');
+}
 function cargarFiltroMecanicos() {
  const select = nodoMecanico('filtroMecanicoOrdenes');
  const anterior = select.value;
@@ -76,9 +185,9 @@ async function cargarMecanicos() {
  nodoMecanico('mecanicosEstado').textContent = 'Cargando mecanicos...';
  try {
   [mecanicos, ordenesMecanicos] = await Promise.all([window.api.mecanicos.list(), window.api.ordenes.list()]);
-  renderMecanicos(); cargarFiltroMecanicos(); nodoMecanico('mecanicoNuevo').disabled = false;
+  renderMecanicos(); cargarFiltroMecanicos(); renderGraficasMecanicos(); nodoMecanico('mecanicoNuevo').disabled = false;
  }
- catch(e) { ordenesMecanicos = []; nodoMecanico('filtroMecanicoOrdenes').disabled = true; nodoMecanico('totalOrdenesMecanicos').textContent = '--'; nodoMecanico('ordenesMecanicoSeleccionado').textContent = '--'; mecanicos = []; renderMecanicos(); nodoMecanico('totalMecanicos').textContent = '--'; nodoMecanico('mecanicosEstado').textContent = 'No se pudieron cargar los mecanicos. Vuelve a abrir el modulo.'; }
+ catch(e) { ordenesMecanicos = []; nodoMecanico('filtroMecanicoOrdenes').disabled = true; nodoMecanico('totalOrdenesMecanicos').textContent = '--'; nodoMecanico('ordenesMecanicoSeleccionado').textContent = '--'; mecanicos = []; renderMecanicos(); renderGraficasMecanicos(); nodoMecanico('totalMecanicos').textContent = '--'; nodoMecanico('mecanicosEstado').textContent = 'No se pudieron cargar los mecanicos. Vuelve a abrir el modulo.'; }
 }
 async function eliminarMecanico(mecanico, button) {
  if (button.disabled) return;
@@ -104,6 +213,17 @@ nodoMecanico('mecanicoCerrar').addEventListener('click', cerrarMecanico);
 nodoMecanico('mecanicoBackdrop').addEventListener('click', cerrarMecanico);
 nodoMecanico('filtroMecanicoOrdenes').addEventListener('change', renderIndicadoresMecanicos);
 nodoMecanico('buscarMecanico').addEventListener('input', renderMecanicos);
+nodoMecanico('filtroDesdeOrdenesEntregadas').addEventListener('change', renderGraficasMecanicos);
+nodoMecanico('filtroHastaOrdenesEntregadas').addEventListener('change', renderGraficasMecanicos);
+window.setInterval(() => {
+ const ahora = new Date();
+ const periodo = `${ahora.getFullYear()}-${String(ahora.getMonth()+1).padStart(2,'0')}`;
+ if (periodoGraficaActual && periodo !== periodoGraficaActual) {
+  nodoMecanico('filtroDesdeOrdenesEntregadas').value = `${periodo}-01`;
+  nodoMecanico('filtroHastaOrdenesEntregadas').value = `${periodo}-${String(ahora.getDate()).padStart(2,'0')}`;
+  renderGraficasMecanicos();
+ }
+}, 60000);
 document.addEventListener('keydown', event => {
  if (!nodoMecanico('modalMecanico').classList.contains('is-open')) return;
  if (event.key === 'Escape') cerrarMecanico();

@@ -211,6 +211,10 @@
                         <p id="ordenTrabajoModo">Registro</p>
                         <h2>Datos de la orden</h2>
                     </div>
+                    <div class="order-intake-reason" id="ordenMotivoIngreso" hidden>
+                        <span>Motivo de ingreso</span>
+                        <strong id="ordenMotivoIngresoTexto"></strong>
+                    </div>
                 </div>
 
                 <form class="work-order-form" id="formOrdenTrabajo">
@@ -330,7 +334,7 @@
                     <datalist id="ordenPilotosList"></datalist>
                     <datalist id="ordenMecanicosList"></datalist>
 
-                    <div class="form-section">
+                    <div class="form-section work-section">
                         <h3>Trabajo realizado</h3>
 
                         <div class="form-grid three">
@@ -364,20 +368,29 @@
                             </label>
                         </div>
 
-                        <div>
+                        <div class="work-notes-grid">
                             <select id="ordenServicios" multiple hidden aria-label="Servicios seleccionados"></select>
-                            <label for="ordenTrabajos">Detalle de trabajo</label>
-                            <textarea id="ordenTrabajos" rows="6" placeholder="Detalle de trabajo" required></textarea>
+                            <div class="work-order-detail">
+                                <label for="ordenTrabajos">Detalle de trabajo</label>
+                                <textarea id="ordenTrabajos" rows="6" required></textarea>
+                            </div>
+                            <label class="work-order-observations" for="ordenObservaciones">
+                                Observaciones
+                                <textarea id="ordenObservaciones" rows="6"></textarea>
+                            </label>
                         </div>
 
                         <div class="parts-section">
                             <div class="parts-section-title">Repuestos colocados</div>
 
                             <div class="parts-picker">
-                                <label>
-                                    Buscar repuesto
-                                    <input id="ordenRepuestoBusqueda" type="text" list="ordenRepuestosInventarioList" placeholder="Filtro de aceite" autocomplete="off">
-                                </label>
+                                <div class="parts-search-wrap">
+                                    <label for="ordenRepuestoBusqueda">Buscar repuesto</label>
+                                    <div class="parts-search-control">
+                                        <input id="ordenRepuestoBusqueda" type="text" placeholder="Escribe código, nombre o descripción" autocomplete="off" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="ordenRepuestoSugerencias">
+                                        <div id="ordenRepuestoSugerencias" class="parts-search-suggestions" role="listbox" hidden></div>
+                                    </div>
+                                </div>
 
                                 <label>
                                     Existencia
@@ -394,8 +407,6 @@
                                 </button>
                             </div>
 
-                            <datalist id="ordenRepuestosInventarioList"></datalist>
-
                             <div class="parts-table-wrap">
                                 <table class="parts-table" aria-label="Repuestos colocados en la orden">
                                     <thead>
@@ -410,11 +421,6 @@
                                 </table>
                             </div>
                         </div>
-
-                        <label>
-                            Observaciones
-                            <textarea id="ordenObservaciones" rows="3" placeholder="Observaciones generales (opcional)"></textarea>
-                        </label>
 
                         <div class="form-grid">
                             <label>

@@ -14,6 +14,9 @@ const pilotosInactivos = document.getElementById('pilotosInactivos');
 const pilotoFormFields = Array.from(formPiloto.querySelectorAll('input, select'));
 const btnAgregarVehiculoCliente = document.getElementById('btnAgregarVehiculoCliente');
 const clienteVehiculosVinculados = document.getElementById('clienteVehiculosVinculados');
+const clienteVehiculosDialog = document.getElementById('clienteVehiculosDialog');
+const clienteVehiculosTitulo = document.getElementById('clienteVehiculosTitulo');
+const clienteVehiculosLista = document.getElementById('clienteVehiculosLista');
 
 const pendienteAsignar = 'Sin vehiculos registrados';
 let modoRegistroPiloto = 'nuevo';
@@ -50,6 +53,32 @@ function formatFechaPiloto(value) {
     const [year, month, day] = value.split('-');
 
     return `${day}/${month}/${year}`;
+}
+
+function renderVehiculosClienteTabla(piloto, index) {
+    const vehiculos = (piloto.vehiculos || []).filter(vehiculo => vehiculo.placa);
+    if (!vehiculos.length) return `<span class="client-vehicles-empty">${escapeAttribute(pendienteAsignar)}</span>`;
+    const etiquetas = vehiculos.slice(0, 3).map(vehiculo => {
+        const detalle = [vehiculo.placa, vehiculo.modelo].filter(Boolean).join(' · ');
+        return `<span class="client-vehicle-tag" title="${escapeAttribute(detalle)}"><span class="client-vehicle-dot" aria-hidden="true"></span><span class="client-vehicle-plate">${escapeAttribute(vehiculo.placa)}</span></span>`;
+    }).join('');
+    const verMas = vehiculos.length > 3
+        ? `<button class="client-vehicles-more" type="button" data-index="${index}" aria-label="Ver los ${vehiculos.length} vehiculos de ${escapeAttribute(piloto.nombre)}">Ver mas <span>+${vehiculos.length - 3}</span></button>`
+        : '';
+    return `<div class="client-vehicles-list">${etiquetas}</div>${verMas}`;
+}
+
+function abrirTodosVehiculos(index) {
+    const piloto = getPilotosFiltrados()[index];
+    if (!piloto) return;
+    clienteVehiculosTitulo.textContent = `Vehiculos de ${piloto.nombre}`;
+    clienteVehiculosLista.replaceChildren(...(piloto.vehiculos || []).map(vehiculo => {
+        const item = document.createElement('article'); item.className = 'client-vehicle-detail';
+        const placa = document.createElement('strong'); placa.textContent = vehiculo.placa || 'Vehiculo sin placa';
+        const modelo = document.createElement('span'); modelo.textContent = [vehiculo.modelo].filter(Boolean).join(' ') || 'Modelo no especificado';
+        item.append(placa, modelo); return item;
+    }));
+    clienteVehiculosDialog.showModal();
 }
 
 function getPilotoFieldValue(id) {
@@ -90,7 +119,7 @@ function setRegistroPilotoSoloLectura(isReadOnly) {
     });
 
     btnGuardarPiloto.hidden = isReadOnly;
-    btnAgregarVehiculoCliente.hidden = isReadOnly || Boolean(contextoRecepcion);
+    btnAgregarVehiculoCliente.hidden = isReadOnly;
     btnAgregarVehiculoCliente.type = 'submit';
     btnAgregarVehiculoCliente.textContent = 'Guardar y agregar vehiculo';
     modalPiloto.classList.toggle('is-readonly', isReadOnly);
@@ -243,7 +272,7 @@ function renderPilotos() {
             <td>${escapeAttribute(piloto.nombre)}</td>
             <td>${escapeAttribute(piloto.licencia)} / ${escapeAttribute(piloto.tipoLicencia)}</td>
             <td>${escapeAttribute(piloto.telefono)}</td>
-            <td>${escapeAttribute(piloto.vehiculo || pendienteAsignar)}</td>
+            <td class="client-vehicles-cell">${renderVehiculosClienteTabla(piloto, index)}</td>
             <td>${formatFechaPiloto(piloto.venceLicencia)}</td>
             <td class="vehicle-actions-cell">
                 <div class="table-actions">
@@ -317,6 +346,10 @@ formPiloto.addEventListener('submit', async (event) => {
             ? await window.api.pilotos.update(pilotoSeleccionadoId, piloto)
             : await window.api.pilotos.create(piloto);
         if (contextoRecepcion) {
+            if (agregarVehiculo) {
+                window.location.href = `vehiculos.html?cliente=${encodeURIComponent(guardado.id)}&origen=recepcion&retorno=${encodeURIComponent(contextoRecepcion)}`;
+                return;
+            }
             window.location.href = `recepcion.html?cliente=${encodeURIComponent(guardado.id)}&retorno=${encodeURIComponent(contextoRecepcion)}`;
             return;
         }
@@ -344,15 +377,23 @@ filtroEstadoPiloto.addEventListener('change', renderPilotos);
 filtroTipoLicenciaPiloto.addEventListener('change', renderPilotos);
 btnNuevoPiloto.addEventListener('click', abrirRegistroPiloto);
 btnCerrarPiloto.addEventListener('click', ocultarRegistroPiloto);
+document.getElementById('cerrarClienteVehiculos').addEventListener('click', () => clienteVehiculosDialog.close());
+clienteVehiculosDialog.addEventListener('click', event => { if (event.target === clienteVehiculosDialog) clienteVehiculosDialog.close(); });
 modalPiloto.addEventListener('click', (event) => {
     if (event.target.hasAttribute('data-close-pilot-modal')) {
         event.preventDefault();
     }
 });
 tablaPilotos.addEventListener('click', async (event) => {
+    const moreVehiclesButton = event.target.closest('.client-vehicles-more');
     const detailButton = event.target.closest('.js-ver-piloto');
     const editButton = event.target.closest('.js-editar-piloto');
     const deleteButton = event.target.closest('.js-eliminar-piloto');
+
+    if (moreVehiclesButton) {
+        abrirTodosVehiculos(Number(moreVehiclesButton.dataset.index));
+        return;
+    }
 
     if (detailButton) {
         verDetallePiloto(Number(detailButton.dataset.index));
@@ -423,3 +464,4 @@ const validacionDpi = window.liveValidation.crear({
     check: ({ dpi, id }) => window.api.pilotos.checkDpi(dpi, id),
     duplicateMessage: 'Ya existe un cliente con ese DPI. Revisa el cliente registrado antes de continuar.'
 });
+

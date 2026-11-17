@@ -311,6 +311,14 @@
         </div>
     </main>
 
+    <dialog id="clienteVehiculosDialog" class="client-vehicles-dialog" aria-labelledby="clienteVehiculosTitulo">
+        <div class="client-vehicles-dialog-header">
+            <div><p>Vehículos registrados</p><h2 id="clienteVehiculosTitulo">Vehículos del cliente</h2></div>
+            <button id="cerrarClienteVehiculos" type="button" aria-label="Cerrar">×</button>
+        </div>
+        <div id="clienteVehiculosLista" class="client-vehicles-dialog-list"></div>
+    </dialog>
+
     <script src="../scripts/ui-dialogs.js"></script>
     <script src="../scripts/dashboard.js"></script>
     <script src="../scripts/live-validation.js"></script>

@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="es" spellcheck="false">
+<head>
+    <meta charset="UTF-8">
+    <script>try { if (localStorage.getItem('sidebarCollapsed') === 'true') document.documentElement.dataset.sidebarCollapsed = 'true'; } catch {}</script>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Usuarios y roles | Taller Mecánico</title>
+    <link rel="stylesheet" href="../styles/styles.css">
+    <link rel="stylesheet" href="../styles/modules/users.css">
+    <link rel="stylesheet" href="../styles/dialogs.css">
+</head>
+<body class="dashboard-body">
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-brand"><h2>Taller</h2></div>
+            <button class="sidebar-toggle" id="sidebarToggle" type="button" aria-label="Contraer menú" aria-expanded="true"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg></button>
+        </div>
+        <nav class="sidebar-nav" aria-label="Menú principal">
+            <a data-tooltip="Dashboard" class="nav-button" href="dashboard.html"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11l9-7 9 7M5 10v10h14V10M10 20v-6h4v6"/></svg></span><span class="nav-label">Dashboard</span></a>
+            <a data-tooltip="Recepción" class="nav-button" href="recepcion.html"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 3h6v4H9zM9 5H5v16h14V5h-4M8 13l3 3 5-6"/></svg></span><span class="nav-label">Recepción</span></a>
+            <a data-tooltip="Vehículos" class="nav-button" href="vehiculos.html"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m3 13 2-6h14l2 6v6h-3v-3H6v3H3zM5 13h14M7 10h.01M17 10h.01"/></svg></span><span class="nav-label">Vehículos</span></a>
+            <a data-tooltip="Clientes" class="nav-button" href="pilotos.html"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2m7-10a4 4 0 1 0 0-8 4 4 0 0 0 0 8"/></svg></span><span class="nav-label">Clientes</span></a>
+            <a data-tooltip="Órdenes" class="nav-button" href="ordenes-trabajo.html"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4H5v17h14V4h-3M9 3h6v4H9zM8 12h8M8 16h8"/></svg></span><span class="nav-label">Órdenes</span></a>
+            <a data-tooltip="Repuestos" class="nav-button" href="repuestos.html"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16v13H4zM8 7V4h8v3m-8 5h8m-8 4h5"/></svg></span><span class="nav-label">Repuestos</span></a>
+            <a data-tooltip="Mecánicos" class="nav-button" href="mecanicos.html"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14 6a5 5 0 0 0-6 6L3 17l4 4 5-5a5 5 0 0 0 6-6l-3 3-4-4z"/></svg></span><span class="nav-label">Mecánicos</span></a>
+            <a data-tooltip="Historial" class="nav-button" href="historial.html"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-7M3 3v5h5M12 7v5l3 2"/></svg></span><span class="nav-label">Historial</span></a>
+            <a data-tooltip="Usuarios" class="nav-button active" href="usuarios.html"><span class="nav-icon"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2m7-10a4 4 0 1 0 0-8 4 4 0 0 0 0 8m7-3h6m-3-3v6"/></svg></span><span class="nav-label">Usuarios</span></a>
+        </nav>
+    </aside>
+    <main class="contenido users-content">
+        <header class="dashboard-title"><div><p>Acceso al sistema</p><h1>Usuarios y roles</h1></div></header>
+        <section class="dashboard-panel users-panel">
+            <p id="usuariosEstado" role="status">Cargando usuarios...</p>
+            <div class="history-scroll"><table class="data-table"><thead><tr><th>Nombre</th><th>Apellido</th><th>Usuario</th><th>Estado</th><th>Último acceso</th><th>Rol</th></tr></thead><tbody id="usuariosTabla"></tbody></table></div>
+        </section>
+    </main>
+    <script src="../scripts/ui-dialogs.js"></script>
+    <script src="../scripts/dashboard.js"></script>
+    <script src="../scripts/modules/usuarios.js"></script>
+</body>
+</html>

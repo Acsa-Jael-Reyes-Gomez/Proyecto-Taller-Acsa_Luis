@@ -19,6 +19,32 @@ const pool = mysql.createPool(dbConfig);
 const recepcion = require('./recepcion-layer').createRecepcionLayer(pool);
 const rules = require('./maintenance-rules').createRules(pool);
 const maintenance = require('./maintenance-layer').createMaintenanceLayer(pool, { listClientes: listPilotos, createCliente: createPiloto });
+let userRolesReady;
+let fechaEntregaOrdenReady;
+
+async function ensureFechaEntregaOrden() {
+    if (!fechaEntregaOrdenReady) fechaEntregaOrdenReady = (async () => {
+        const [columns] = await pool.query("SHOW COLUMNS FROM ordenes_trabajo LIKE 'fecha_entrega'");
+        if (!columns.length) await pool.query('ALTER TABLE ordenes_trabajo ADD COLUMN fecha_entrega DATETIME NULL AFTER fecha_actualizacion');
+        await pool.query("UPDATE ordenes_trabajo SET fecha_entrega = COALESCE(fecha_actualizacion, fecha_salida) WHERE estado = 'Entregado' AND fecha_entrega IS NULL");
+    })().catch(error => { fechaEntregaOrdenReady = null; throw error; });
+    return fechaEntregaOrdenReady;
+}
+
+async function ensureUserRoles() {
+    if (!userRolesReady) userRolesReady = (async () => {
+        const [columns] = await pool.query("SHOW COLUMNS FROM usuarios LIKE 'rol'");
+        if (!columns.length) await pool.query("ALTER TABLE usuarios ADD COLUMN rol ENUM('Administrador','Empleado') NOT NULL DEFAULT 'Empleado' AFTER nombre");
+        const [admins] = await pool.query("SELECT id_usuario FROM usuarios WHERE rol = 'Administrador' AND estado = 'Activo' LIMIT 1");
+        if (!admins.length) await pool.query("UPDATE usuarios SET rol = 'Administrador' WHERE id_usuario = (SELECT id_usuario FROM (SELECT id_usuario FROM usuarios WHERE estado = 'Activo' ORDER BY id_usuario LIMIT 1) AS primer_usuario)");
+        const [surnameColumns] = await pool.query("SHOW COLUMNS FROM usuarios LIKE 'apellido'");
+        if (!surnameColumns.length) {
+            await pool.query("ALTER TABLE usuarios ADD COLUMN apellido VARCHAR(100) NOT NULL DEFAULT '' AFTER nombre");
+            await pool.query("UPDATE usuarios SET nombre = 'Luis', apellido = 'Gomez' WHERE id_usuario = (SELECT id_usuario FROM (SELECT id_usuario FROM usuarios WHERE estado = 'Activo' AND rol = 'Administrador' ORDER BY id_usuario LIMIT 1) AS administrador_inicial)");
+        }
+    })().catch(error => { userRolesReady = null; throw error; });
+    return userRolesReady;
+}
 
 function buildDatabaseError(error) {
     if (error && error.code === 'ER_ACCESS_DENIED_ERROR') {
@@ -82,8 +108,7 @@ function mapPiloto(row) {
         vehiculos: [],
         direccion: row.direccion,
         contactoEmpresa: row.contacto_empresa,
-        fechaCreacion: row.fecha_creacion,
-        fechaActualizacion: row.fecha_actualizacion
+        fechaCreacion: row.fecha_creacion
     };
 }
 
@@ -120,8 +145,11 @@ function mapOrden(row) {
     return {
         id: row.id_orden,
         fechaCreacion: row.fecha_creacion,
+        fechaActualizacion: row.fecha_actualizacion,
+        fechaEntrega: row.fecha_entrega,
         idVehiculo: row.id_vehiculo,
         idRecepcion: row.id_recepcion,
+        motivoIngreso: row.motivo_ingreso,
         numero: row.numero,
         serie: row.serie,
         fechaEntrada: row.fecha_entrada,
@@ -130,7 +158,7 @@ function mapOrden(row) {
         fechaSalida: row.fecha_salida,
         horaSalida: row.hora_salida ? String(row.hora_salida).slice(0, 5) : '',
         periodoSalida: row.periodo_salida,
-        vehiculo: row.vehiculo,
+        vehiculo: row.vehiculo_completo || row.vehiculo,
         placa: row.placa,
         piloto: row.piloto,
         marca: row.marca,
@@ -167,7 +195,10 @@ function mapOrdenRepuesto(row) {
 }
 
 async function listVehiculos() {
-    const [rows] = await pool.query(`SELECT v.*, c.nombre AS cliente
+    const [rows] = await pool.query(`SELECT v.*, c.nombre AS cliente,
+        EXISTS (SELECT 1 FROM ordenes_trabajo o
+            WHERE (o.id_vehiculo = v.id_vehiculo OR (o.id_vehiculo IS NULL AND o.placa = v.placa))
+            AND o.estado IN ('Espera', 'Activa', 'Abierta', 'En proceso', 'Finalizada')) AS kilometraje_bloqueado
         FROM vehiculos v LEFT JOIN clientes c ON c.id_cliente = v.id_cliente ORDER BY v.id_vehiculo DESC`);
     return rows.map(mapVehiculo);
 }
@@ -515,7 +546,13 @@ async function listUltimosIngresosRepuestos() {
 }
 
 async function listOrdenes() {
-    const [ordenRows] = await pool.query('SELECT * FROM ordenes_trabajo ORDER BY id_orden DESC');
+    await ensureFechaEntregaOrden();
+    await recepcion.ensureTable();
+    const [ordenRows] = await pool.query(`SELECT o.*, r.motivo AS motivo_ingreso,
+            CONCAT_WS(' ', NULLIF(v.marca, ''), NULLIF(v.linea, ''), NULLIF(v.modelo, '')) AS vehiculo_completo
+        FROM ordenes_trabajo o LEFT JOIN recepciones r ON r.id_recepcion = o.id_recepcion
+        LEFT JOIN vehiculos v ON v.id_vehiculo = o.id_vehiculo OR (o.id_vehiculo IS NULL AND v.placa = o.placa)
+        ORDER BY o.id_orden DESC`);
     const [detalles] = await pool.query("SELECT id_orden, id_servicio FROM detalle_servicio WHERE estado_mantenimiento <> 'Cancelado'");
     const ordenes = ordenRows.map(row => ({ ...mapOrden(row), servicios: detalles.filter(d => d.id_orden === row.id_orden).map(d => d.id_servicio) }));
 
@@ -587,6 +624,8 @@ async function saveOrdenRepuestos(connection, idOrden, repuestos) {
 }
 
 async function createOrden(value) {
+    await ensureFechaEntregaOrden();
+    await rules.ensureNotificationCountColumn();
     const orden = { ...value };
     const connection = await pool.getConnection();
 
@@ -609,7 +648,7 @@ async function createOrden(value) {
             emptyToNull(orden.proximoServicio), emptyToNull(orden.tipoVehiculo), orden.estado || 'Activa',
             orden.manoMecanico ? 1 : 0, orden.manoElectronico ? 1 : 0, orden.manoPintura ? 1 : 0, orden.manoPinchazo ? 1 : 0,
             Number(orden.totalManoObra) || 0, Number(orden.totalRepuestos) || 0,
-            emptyToNull(orden.trabajos), orden.observaciones?.trim() || 'ninguna observacion'
+            emptyToNull(orden.trabajos), emptyToNull(orden.observaciones?.trim())
         ]);
 
         await rules.completarOrden(connection, result.insertId, orden, contexto);
@@ -626,6 +665,7 @@ async function createOrden(value) {
 }
 
 async function updateOrden(id, value) {
+    await ensureFechaEntregaOrden();
     const orden = { ...value };
     const connection = await pool.getConnection();
 
@@ -636,7 +676,9 @@ async function updateOrden(id, value) {
         await connection.execute(`
             UPDATE ordenes_trabajo SET
                 numero = ?, serie = ?, fecha_entrada = ?, hora_entrada = ?, periodo_entrada = ?,
-                fecha_salida = ?, hora_salida = ?, periodo_salida = ?, vehiculo = ?, placa = ?,
+                fecha_salida = ?, hora_salida = ?, periodo_salida = ?,
+                fecha_entrega = IF(? = 'Entregado' AND estado <> 'Entregado', NOW(), fecha_entrega),
+                vehiculo = ?, placa = ?,
                 piloto = ?, marca = ?, mecanico = ?, departamento = ?, kilometraje = ?,
                 proximo_servicio = ?, tipo_vehiculo = ?, estado = ?, mano_mecanico = ?,
                 mano_electronico = ?, mano_pintura = ?, mano_pinchazo = ?, total_mano_obra = ?, total_repuestos = ?,
@@ -645,12 +687,13 @@ async function updateOrden(id, value) {
         `, [
             orden.numero, String(orden.serie || 'SERIE A').toUpperCase(), orden.fechaEntrada, orden.horaEntrada, orden.periodoEntrada || 'AM',
             emptyToNull(orden.fechaSalida), emptyToNull(orden.horaSalida), orden.periodoSalida || 'PM',
+            orden.estado || 'Activa',
             emptyToNull(orden.vehiculo), orden.placa, emptyToNull(orden.piloto), emptyToNull(orden.marca),
             emptyToNull(orden.mecanico), emptyToNull(orden.departamento), Number(orden.kilometraje) || 0,
             emptyToNull(orden.proximoServicio), emptyToNull(orden.tipoVehiculo), orden.estado || 'Activa',
             orden.manoMecanico ? 1 : 0, orden.manoElectronico ? 1 : 0, orden.manoPintura ? 1 : 0, orden.manoPinchazo ? 1 : 0,
             Number(orden.totalManoObra) || 0, Number(orden.totalRepuestos) || 0,
-            emptyToNull(orden.trabajos), orden.observaciones?.trim() || 'ninguna observacion', id
+            emptyToNull(orden.trabajos), emptyToNull(orden.observaciones?.trim()), id
         ]);
 
         await rules.completarOrden(connection, id, orden, contexto);
@@ -667,7 +710,11 @@ async function updateOrden(id, value) {
 }
 
 async function getOrden(id) {
-    const [rows] = await pool.execute('SELECT * FROM ordenes_trabajo WHERE id_orden = ?', [id]);
+    await ensureFechaEntregaOrden();
+    const [rows] = await pool.execute(`SELECT o.*,
+            CONCAT_WS(' ', NULLIF(v.marca, ''), NULLIF(v.linea, ''), NULLIF(v.modelo, '')) AS vehiculo_completo
+        FROM ordenes_trabajo o LEFT JOIN vehiculos v ON v.id_vehiculo = o.id_vehiculo OR (o.id_vehiculo IS NULL AND v.placa = o.placa)
+        WHERE o.id_orden = ?`, [id]);
     if (!rows[0]) {
         return null;
     }
@@ -697,12 +744,13 @@ async function deleteOrden(id) {
 
 async function authenticateUser(usuario, password) {
     try {
+        await ensureUserRoles();
         if (typeof usuario !== 'string' || typeof password !== 'string' || !usuario.trim() || !password) {
             return null;
         }
 
         const [rows] = await pool.execute(`
-            SELECT id_usuario, usuario, nombre
+            SELECT id_usuario, usuario, nombre, apellido, rol
             FROM usuarios
             WHERE usuario = ?
                 AND password_hash = ?
@@ -720,11 +768,39 @@ async function authenticateUser(usuario, password) {
         return {
             id: user.id_usuario,
             usuario: user.usuario,
-            nombre: user.nombre
+            nombre: user.nombre,
+            apellido: user.apellido,
+            rol: user.rol
         };
     } catch (error) {
         throw buildDatabaseError(error);
     }
+}
+
+async function listUsers() {
+    await ensureUserRoles();
+    const [rows] = await pool.query('SELECT id_usuario AS id, usuario, nombre, apellido, rol, estado, ultimo_acceso FROM usuarios ORDER BY nombre, apellido, usuario');
+    return rows;
+}
+
+async function setUserRole(id, role) {
+    await ensureUserRoles();
+    const userId = Number(id);
+    if (!Number.isInteger(userId) || userId <= 0 || !['Administrador', 'Empleado'].includes(role)) throw new Error('Usuario o rol invalido.');
+    const connection = await pool.getConnection();
+    try {
+        await connection.beginTransaction();
+        const [rows] = await connection.execute('SELECT id_usuario, rol, estado FROM usuarios WHERE id_usuario = ? FOR UPDATE', [userId]);
+        if (!rows.length) throw new Error('El usuario ya no existe.');
+        if (rows[0].rol === 'Administrador' && rows[0].estado === 'Activo' && role !== 'Administrador') {
+            const [admins] = await connection.query("SELECT COUNT(*) AS total FROM usuarios WHERE estado = 'Activo' AND rol = 'Administrador'");
+            if (Number(admins[0].total) <= 1) throw new Error('Debe quedar al menos un administrador activo.');
+        }
+        await connection.execute('UPDATE usuarios SET rol = ?, fecha_actualizacion = NOW() WHERE id_usuario = ?', [role, userId]);
+        await connection.commit();
+        return { id: userId, rol: role };
+    } catch (error) { await connection.rollback(); throw error; }
+    finally { connection.release(); }
 }
 
 function validarMecanico(value) {
@@ -780,7 +856,9 @@ async function listHistorial() {
     await recepcion.ensureTable();
     const [rows] = await pool.query(`
         SELECT o.id_orden, o.id_vehiculo, o.fecha_entrada AS fecha, o.placa,
-            o.vehiculo, o.tipo_vehiculo AS tipoVehiculo, CONCAT(o.serie, ' - ', o.numero) AS orden, o.kilometraje,
+            CASE WHEN v.id_vehiculo IS NULL THEN CONCAT_WS(' ', NULLIF(o.marca, ''), NULLIF(o.vehiculo, ''))
+                ELSE CONCAT_WS(' ', NULLIF(v.marca, ''), NULLIF(v.linea, ''), NULLIF(v.modelo, '')) END AS vehiculo,
+            o.tipo_vehiculo AS tipoVehiculo, CONCAT(o.serie, ' - ', o.numero) AS orden, o.kilometraje,
             o.mecanico, o.trabajos, o.observaciones, o.estado,
             r.id_recepcion, r.cliente AS recepcion_cliente, r.nivel_uso, r.combustible,
             r.espejos, r.bateria, r.documentos, r.motivo AS recepcion_motivo,
@@ -788,6 +866,7 @@ async function listHistorial() {
             'Ingreso a taller' AS evento, o.fecha_creacion AS fecha_registro
         FROM ordenes_trabajo o
         LEFT JOIN recepciones r ON r.id_recepcion = o.id_recepcion
+        LEFT JOIN vehiculos v ON v.id_vehiculo = o.id_vehiculo OR (o.id_vehiculo IS NULL AND v.placa = o.placa)
         WHERE o.estado IN ('Espera', 'Abierta', 'Activa', 'En proceso', 'Finalizada', 'Entregado')
         ORDER BY fecha DESC, fecha_registro DESC, id_orden DESC
     `);
@@ -813,9 +892,11 @@ module.exports = {
     actualizarKilometraje: rules.actualizarKilometraje,
     listMecanicos, saveMecanico, deleteMecanico, checkMecanicoDpi,
     listHistorial,
+    listUsers, setUserRole,
     setEstadoVehiculo,
     dashboard: rules.dashboard,
     generarRecordatorios: rules.generarRecordatorios,
+    registrarNotificacionMantenimiento: rules.registrarNotificacionMantenimiento,
     listServicios: maintenance.listServicios,
     authenticateUser,
     listVehiculos,

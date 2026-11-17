@@ -54,6 +54,7 @@ CREATE TABLE IF NOT EXISTS detalle_servicio (
     observaciones TEXT NULL,
     nivel_uso ENUM('Bajo', 'Normal', 'Alto') NOT NULL DEFAULT 'Normal',
     fecha_proximo_servicio DATE NULL,
+    notificaciones_cliente TINYINT UNSIGNED NOT NULL DEFAULT 0,
     estado_mantenimiento ENUM('Pendiente', 'Realizado', 'Cancelado') NOT NULL DEFAULT 'Pendiente',
     PRIMARY KEY (id_detalle_servicio),
     KEY idx_detalle_orden (id_orden),

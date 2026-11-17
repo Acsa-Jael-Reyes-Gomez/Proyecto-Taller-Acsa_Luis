@@ -6,7 +6,9 @@
     }
     function resumirNotificaciones(ordenes, servicios) {
         const espera = ordenes.filter(orden => orden.estado === 'Espera');
-        const pendientes = servicios.filter(servicio => ['Proximo', 'Urgente', 'Servicio pasado'].includes(servicio.estado_alerta));
+        const pendientes = servicios.filter(servicio => ['Proximo', 'Urgente', 'Servicio pasado'].includes(servicio.estado_alerta)
+            && servicio.kilometros_restantes != null && Number(servicio.kilometros_restantes) < 500
+            && Number(servicio.notificaciones_cliente || 0) < 3);
         return { espera, pendientes, vehiculos: new Set(pendientes.map(s => s.id_vehiculo || s.placa)).size };
     }
     if (typeof module !== 'undefined' && module.exports) {
@@ -61,7 +63,12 @@
                 const item = node('div', '', 'notification-item');
                 item.append(node('strong', `${service.placa} | ${service.servicio}`));
                 const statusClasses = { Proximo: 'upcoming', Urgente: 'urgent', 'Servicio pasado': 'overdue' };
-                item.append(node('span', service.estado_alerta, `notification-status ${statusClasses[service.estado_alerta]}`));
+                const estadoLinea = node('div', '', 'notification-service-status');
+                estadoLinea.append(node('span', service.estado_alerta, `notification-status ${statusClasses[service.estado_alerta]}`));
+                const contadorAvisos = node('span', '', 'notification-alert-count');
+                contadorAvisos.title = `${Number(service.notificaciones_cliente || 0)} de 3 avisos preparados en WhatsApp`;
+                contadorAvisos.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2.8 19h18.4L12 3Z"/><path d="M12 9v4m0 3h.01"/></svg><span>' + Number(service.notificaciones_cliente || 0) + '/3</span>';
+                estadoLinea.append(contadorAvisos); item.append(estadoLinea);
                 item.append(node('p', `Cliente: ${client?.nombre || service.propietario || 'Sin cliente vinculado'}`));
                 if (client?.telefono) item.append(node('p', `Telefono: ${client.telefono}`));
                 const reasons = [];
@@ -76,14 +83,24 @@
                 for (const reason of reasons) item.append(node('p', reason));
                 const notify = node('button', 'Notificar a cliente', 'notification-whatsapp');
                 notify.type = 'button';
-                notify.disabled = !client?.telefono;
-                notify.title = client?.telefono ? 'Abrir WhatsApp con el mensaje preparado' : 'El cliente no tiene un telefono registrado';
+                const avisosEnviados = Number(service.notificaciones_cliente || 0);
+                notify.disabled = !client?.telefono || avisosEnviados >= 3;
+                notify.title = !client?.telefono ? 'El cliente no tiene un telefono registrado' : avisosEnviados >= 3 ? 'Este servicio ya tiene 3 recordatorios enviados' : 'Preparar el mensaje en la ventana de WhatsApp';
                 notify.addEventListener('click', async () => {
-                    const message = `Hola ${client.nombre}, le saludamos de Taller. El servicio ${service.servicio} de su vehiculo con placa ${service.placa} esta en estado ${service.estado_alerta}. ${reasons.join('. ')}. Contactenos para coordinar una cita de mantenimiento.`;
+                    const servicio = String(service.servicio || 'mantenimiento preventivo').trim();
+                    const servicioEnTexto = servicio ? servicio.charAt(0).toLocaleLowerCase('es-GT') + servicio.slice(1) : 'mantenimiento preventivo';
+                    const recordatorio = service.estado_alerta === 'Servicio pasado'
+                        ? `Le informamos que su vehículo (placa ${service.placa}) tiene pendiente su servicio de ${servicioEnTexto}.`
+                        : `Le recordamos que su vehículo (placa ${service.placa}) tiene próximo su servicio de ${servicioEnTexto}.`;
+                    const message = `Hola, ${client.nombre}. 👋 ${recordatorio} Le invitamos a agendar su cita de mantenimiento. ¡Será un gusto atenderle!`;
                     try {
                         await root.api.whatsapp.abrir(client.telefono, message);
-                        field('mensajeNotificacionesRecepcion').textContent = 'WhatsApp abierto con el mensaje preparado. Pulsa Enviar en WhatsApp para notificar al cliente.';
-                    } catch (error) { field('mensajeNotificacionesRecepcion').textContent = `No se pudo abrir WhatsApp: ${error.message}`; }
+                        const cantidad = await root.api.dashboard.registrarNotificacionMantenimiento(service.id_detalle_servicio);
+                        const mensajeEstado = cantidad >= 3 ? 'Se abrió WhatsApp por tercera vez. La alerta de contacto se retiró del panel.' : `Aviso ${cantidad} de 3 preparado en WhatsApp.`;
+                        root.dispatchEvent(new Event('mantenimiento:recordatorio-registrado'));
+                        await actualizar();
+                        field('mensajeNotificacionesRecepcion').textContent = mensajeEstado;
+                    } catch (error) { field('mensajeNotificacionesRecepcion').textContent = `No se pudo preparar o registrar el aviso: ${error.message}`; }
                 });
                 item.append(notify);
                 item.append(link('Ver agenda de mantenimiento', 'dashboard.html'));
@@ -114,6 +131,9 @@
     });
     root.recepcionNotificaciones = { actualizar };
     actualizar();
-    root.addEventListener('focus', actualizar);
-    setInterval(() => { if (!document.hidden) actualizar(); }, 60000);
+    root.addEventListener('focus', () => { if (!panel.hidden) actualizar(); });
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden && !panel.hidden) actualizar();
+    });
+    setInterval(() => { if (!document.hidden && !panel.hidden) actualizar(); }, 60000);
 })(typeof window !== 'undefined' ? window : globalThis);

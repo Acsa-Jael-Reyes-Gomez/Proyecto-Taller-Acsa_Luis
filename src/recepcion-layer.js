@@ -92,7 +92,7 @@ function createRecepcionLayer(pool) {
                     ?, ?, ?, ?, ?, ?, ?, ?, 'Espera', ?, ?, ?, NOW(), NOW())`,
                 [numeroOrden, result.insertId, data.idVehiculo, vehicle.modelo || null,
                  vehicle.placa, clients[0].nombre, vehicle.marca || null, mechanic, data.idMecanico,
-                 data.kilometraje, vehicle.tipo || null, data.motivo, data.observaciones || 'ninguna observacion', userId]);
+                 data.kilometraje, vehicle.tipo || null, data.motivo, data.observaciones || null, userId]);
             await connection.execute(`INSERT INTO historial_kilometraje
                 (id_vehiculo, id_orden, fecha_registro, kilometraje, origen, observaciones)
                 VALUES (?, ?, NOW(), ?, 'Ingreso a taller', ?)`,

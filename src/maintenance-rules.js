@@ -38,6 +38,25 @@ function estadoMantenimiento(kilometros, dias) {
 }
 
 function createRules(pool) {
+    let notificationCountReady;
+    async function ensureNotificationCountColumn() {
+        if (!notificationCountReady) notificationCountReady = (async () => {
+            const [columns] = await pool.query("SHOW COLUMNS FROM detalle_servicio LIKE 'notificaciones_cliente'");
+            if (!columns.length) await pool.query('ALTER TABLE detalle_servicio ADD COLUMN notificaciones_cliente TINYINT UNSIGNED NOT NULL DEFAULT 0');
+        })().catch(error => { notificationCountReady = null; throw error; });
+        return notificationCountReady;
+    }
+
+    async function registrarNotificacionMantenimiento(idDetalleServicio) {
+        await ensureNotificationCountColumn();
+        const id = Number(idDetalleServicio);
+        if (!Number.isInteger(id) || id <= 0) throw new Error('El servicio de mantenimiento no es valido.');
+        await pool.execute('UPDATE detalle_servicio SET notificaciones_cliente = notificaciones_cliente + 1 WHERE id_detalle_servicio = ? AND notificaciones_cliente < 3', [id]);
+        const [rows] = await pool.execute('SELECT notificaciones_cliente FROM detalle_servicio WHERE id_detalle_servicio = ?', [id]);
+        if (!rows.length) throw new Error('No se encontro el servicio de mantenimiento.');
+        return Number(rows[0]?.notificaciones_cliente) || 0;
+    }
+
     async function transaction(work) {
         const connection = await pool.getConnection();
         try {
@@ -54,7 +73,8 @@ function createRules(pool) {
     async function validarKm(connection, vehiculo, value) {
         const km = kilometrajeValido(value);
         const [rows] = await connection.execute('SELECT MAX(kilometraje) AS ultimo FROM historial_kilometraje WHERE id_vehiculo = ?', [vehiculo.id_vehiculo]);
-        const ultimo = Math.max(Number(vehiculo.kilometraje), Number(rows[0].ultimo || 0));
+        const kilometrajeFicha = Number(vehiculo.kilometraje) || 0;
+        const ultimo = kilometrajeFicha > 0 ? kilometrajeFicha : Number(rows[0].ultimo || 0);
         if (km < ultimo) throw new Error(`El kilometraje no puede ser menor al ultimo registrado (${ultimo} km).`);
         return km;
     }
@@ -156,14 +176,15 @@ function createRules(pool) {
         if (!vehiculo) throw new Error('Registra o selecciona el vehiculo antes de guardar la orden.');
         if (anterior && (orden.placa !== anterior.placa || (orden.idVehiculo && Number(orden.idVehiculo) !== Number(vehiculo.id_vehiculo)))) throw new Error('No se puede cambiar el vehiculo de una orden existente.');
         orden.kilometraje = kilometrajeValido(orden.kilometraje);
-        if (/^\d+(?:\.\d+)?$/.test(String(orden.proximoServicio ?? '').trim()) && Number(orden.proximoServicio) < orden.kilometraje) throw new Error(`El proximo kilometraje no puede ser menor al registrado (${orden.kilometraje} km).`);
+        const kilometrajeActual = Math.max(orden.kilometraje, Number(vehiculo.kilometraje) || 0);
+        if (/^\d+(?:\.\d+)?$/.test(String(orden.proximoServicio ?? '').trim()) && Number(orden.proximoServicio) <= kilometrajeActual) throw new Error(`El proximo servicio debe ser mayor al kilometraje actual (${kilometrajeActual} km).`);
         const [historia] = id ? await connection.execute('SELECT id_historial_kilometraje FROM historial_kilometraje WHERE id_orden = ? LIMIT 1', [id]) : [[]];
         const nuevoKm = !anterior || !historia.length || Number(anterior.kilometraje) !== orden.kilometraje;
         if (nuevoKm) await validarKm(connection, vehiculo, orden.kilometraje);
         if (['Finalizada', 'Entregado'].includes(anterior?.estado) && (Number(anterior.kilometraje) !== orden.kilometraje || anterior.fecha_salida !== (orden.fechaSalida || null))) throw new Error('No se puede modificar la fecha o kilometraje de un servicio finalizado.');
         // Estas columnas son una instantanea de la atencion, no el catalogo actual.
         orden.placa = anterior?.placa || vehiculo.placa;
-        orden.vehiculo = anterior?.vehiculo ?? vehiculo.modelo;
+        orden.vehiculo = [vehiculo.marca, vehiculo.linea, vehiculo.modelo].filter(Boolean).join(' ') || anterior?.vehiculo || vehiculo.modelo;
         orden.marca = anterior?.marca ?? vehiculo.marca;
         orden.tipoVehiculo = anterior?.tipo_vehiculo ?? vehiculo.tipo;
         if (anterior) {
@@ -187,6 +208,16 @@ function createRules(pool) {
         const { vehiculo, nuevoKm, anterior } = contexto;
         await connection.execute('UPDATE ordenes_trabajo SET id_mecanico = ? WHERE id_orden = ?', [orden.idMecanico, id]);
         await connection.execute('UPDATE ordenes_trabajo SET id_vehiculo = ? WHERE id_orden = ?', [vehiculo.id_vehiculo, id]);
+        if (!anterior) {
+            await connection.execute(`
+                UPDATE detalle_servicio ds
+                JOIN ordenes_trabajo orden_anterior ON orden_anterior.id_orden = ds.id_orden
+                SET ds.notificaciones_cliente = 0
+                WHERE (orden_anterior.id_vehiculo = ?
+                    OR (orden_anterior.id_vehiculo IS NULL AND orden_anterior.placa = ?))
+                    AND ds.notificaciones_cliente >= 3
+            `, [vehiculo.id_vehiculo, vehiculo.placa]);
+        }
         if (nuevoKm) await historial(connection, vehiculo.id_vehiculo, id, orden.kilometraje, anterior ? 'Actualizacion' : 'Ingreso a taller');
         if (orden.servicios !== undefined) {
             if (!Array.isArray(orden.servicios)) throw new Error('Seleccion de servicios invalida.');
@@ -232,21 +263,45 @@ function createRules(pool) {
     }
 
     async function dashboard() {
-        await generarRecordatorios();
+        await ensureNotificationCountColumn();
         const [counts] = await pool.query(`SELECT
             (SELECT COUNT(*) FROM vehiculos) AS vehiculos,
             (SELECT COUNT(*) FROM vw_mantenimientos_alerta WHERE estado_alerta = 'Proximo') AS proximos,
             (SELECT COUNT(*) FROM vw_mantenimientos_alerta WHERE estado_alerta = 'Vencido') AS vencidos,
             (SELECT COUNT(*) FROM ordenes_trabajo WHERE estado IN ('Espera', 'Activa', 'Abierta', 'En proceso', 'Finalizada')) AS enTaller,
             (SELECT COUNT(*) FROM ordenes_trabajo WHERE estado = 'En proceso') AS enProceso`);
-        const [servicios] = await pool.query(`SELECT a.*, v.modelo AS vehiculo,
-            CASE WHEN s.intervalo_km_referencial > 0 THEN ds.kilometraje_servicio + s.intervalo_km_referencial ELSE NULL END AS kilometraje_proximo,
-            GREATEST(IFNULL(v.kilometraje,0), IFNULL((SELECT MAX(h.kilometraje) FROM historial_kilometraje h WHERE h.id_vehiculo = v.id_vehiculo),0),
-                IFNULL((SELECT MAX(o.kilometraje) FROM ordenes_trabajo o WHERE o.id_vehiculo = v.id_vehiculo OR (o.id_vehiculo IS NULL AND o.placa = v.placa)),0)) AS kilometraje_actual
+        const [servicios] = await pool.query(`SELECT a.*, v.modelo AS vehiculo, ds.notificaciones_cliente,
+            CASE
+                WHEN TRIM(ot_ultima.proximo_servicio) REGEXP '^[0-9]+([.][0-9]+)?$'
+                    THEN CAST(TRIM(ot_ultima.proximo_servicio) AS DECIMAL(12,2))
+                WHEN s.intervalo_km_referencial > 0
+                    THEN ds.kilometraje_servicio + s.intervalo_km_referencial
+                ELSE NULL
+            END AS kilometraje_proximo,
+            CASE WHEN IFNULL(v.kilometraje,0) > 0 THEN v.kilometraje
+                ELSE GREATEST(IFNULL((SELECT MAX(h.kilometraje) FROM historial_kilometraje h WHERE h.id_vehiculo = v.id_vehiculo),0),
+                    IFNULL((SELECT MAX(o.kilometraje) FROM ordenes_trabajo o WHERE o.id_vehiculo = v.id_vehiculo OR (o.id_vehiculo IS NULL AND o.placa = v.placa)),0))
+            END AS kilometraje_actual
             FROM vw_mantenimientos_alerta a
             JOIN vehiculos v ON v.id_vehiculo = a.id_vehiculo
             JOIN detalle_servicio ds ON ds.id_detalle_servicio = a.id_detalle_servicio
+            LEFT JOIN ordenes_trabajo ot_ultima ON ot_ultima.id_orden = (
+                SELECT MAX(ot_reciente.id_orden)
+                FROM ordenes_trabajo ot_reciente
+                WHERE ot_reciente.id_vehiculo = v.id_vehiculo
+                   OR (ot_reciente.id_vehiculo IS NULL AND ot_reciente.placa = v.placa)
+            )
             JOIN servicios s ON s.id_servicio = ds.id_servicio
+            WHERE NOT EXISTS (
+                SELECT 1
+                FROM detalle_servicio ds_nuevo
+                JOIN ordenes_trabajo ot_nueva ON ot_nueva.id_orden = ds_nuevo.id_orden
+                WHERE ot_nueva.id_vehiculo = v.id_vehiculo
+                  AND ds_nuevo.id_servicio = ds.id_servicio
+                  AND ds_nuevo.estado_mantenimiento = 'Realizado'
+                  AND (ds_nuevo.fecha_realizado > ds.fecha_realizado
+                    OR (ds_nuevo.fecha_realizado = ds.fecha_realizado AND ds_nuevo.id_detalle_servicio > ds.id_detalle_servicio))
+            )
             ORDER BY a.fecha_proximo_servicio, a.id_detalle_servicio`);
         const hoy = new Date();
         for (const servicio of servicios) {
@@ -256,6 +311,6 @@ function createRules(pool) {
         }
         return { ...counts[0], proximos: servicios.filter(s => ['Proximo', 'Urgente'].includes(s.estado_alerta)).length, vencidos: servicios.filter(s => s.estado_alerta === 'Servicio pasado').length, servicios };
     }
-    return { actualizarKilometraje, guardarVehiculo, prepararOrden, completarOrden, generarRecordatorios, dashboard };
+    return { actualizarKilometraje, guardarVehiculo, prepararOrden, completarOrden, generarRecordatorios, registrarNotificacionMantenimiento, ensureNotificationCountColumn, dashboard };
 }
 module.exports = { createRules, kilometrajeValido, proximaFecha, diasParaServicio, estadoMantenimiento };

@@ -131,6 +131,85 @@
     padding-bottom:10px;
 }
 
+.client-vehicles-cell{min-width:0;max-width:100%}
+.client-vehicles-list{
+    display:grid;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    align-items:center;
+    column-gap:9px;
+    row-gap:5px;
+    padding:1px 2px 1px 0;
+    box-sizing:border-box;
+}
+.client-vehicle-tag{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    width:100%;
+    min-width:0;
+    max-width:100%;
+    padding:4px 8px;
+    border:1px solid rgba(125,211,252,.22);
+    border-radius:999px;
+    background:rgba(14,165,233,.12);
+    color:#d9f1ff;
+    font-size:11px;
+    font-weight:700;
+    line-height:1.2;
+    white-space:nowrap;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    box-sizing:border-box;
+}
+.client-vehicle-tag{justify-content:flex-start}
+.client-vehicle-dot{
+    width:6px;
+    height:6px;
+    flex:0 0 6px;
+    border-radius:50%;
+    background:#38bdf8;
+    box-shadow:0 0 0 3px rgba(56,189,248,.12);
+}
+.client-vehicle-plate{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.client-vehicles-empty{color:#94a3b8;font-size:12px;font-style:italic}
+.client-vehicles-more{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    margin-top:5px;
+    padding:3px 8px;
+    border:1px solid rgba(125,211,252,.2);
+    border-radius:8px;
+    background:rgba(15,23,42,.36);
+    color:#bae6fd;
+    font:inherit;
+    font-size:11px;
+    font-weight:700;
+    cursor:pointer;
+}
+.client-vehicles-more span{color:#7dd3fc}
+.client-vehicles-more:hover{background:rgba(14,165,233,.16);border-color:rgba(125,211,252,.38)}
+.client-vehicles-dialog{
+    width:min(520px,calc(100vw - 32px));
+    max-height:min(78vh,620px);
+    padding:0;
+    overflow:hidden;
+    border:1px solid rgba(148,163,184,.24);
+    border-radius:16px;
+    background:#1e293b;
+    color:#f8fafc;
+    box-shadow:0 24px 70px rgba(0,0,0,.48);
+}
+.client-vehicles-dialog::backdrop{background:rgba(2,6,23,.72);backdrop-filter:blur(4px)}
+.client-vehicles-dialog-header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:17px 20px;border-bottom:1px solid rgba(148,163,184,.16);background:linear-gradient(110deg,rgba(56,189,248,.1),transparent)}
+.client-vehicles-dialog-header p{margin:0 0 4px;color:#7dd3fc;font-size:10px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}
+.client-vehicles-dialog-header h2{margin:0;font-size:18px;overflow-wrap:anywhere}
+.client-vehicles-dialog-header button{width:34px;height:34px;border:1px solid rgba(255,255,255,.12);border-radius:9px;background:#0f172a;color:#f8fafc;font-size:20px;cursor:pointer}
+.client-vehicles-dialog-list{display:grid;gap:8px;max-height:calc(min(78vh,620px) - 85px);padding:16px 20px;overflow-y:auto}
+.client-vehicle-detail{display:flex;flex-direction:column;gap:3px;padding:11px 13px;border:1px solid rgba(125,211,252,.16);border-radius:10px;background:rgba(15,23,42,.42)}
+.client-vehicle-detail strong{color:#d9f1ff;font-size:13px}
+.client-vehicle-detail span{color:#94a3b8;font-size:12px}
+
 .table-actions{
     display:flex;
     align-items:center;

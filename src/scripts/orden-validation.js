@@ -9,7 +9,7 @@
     function validarOrden(value) {
         const orden = { ...value };
         if (orden.observaciones != null && typeof orden.observaciones !== 'string') throw new Error('Observaciones debe ser texto.');
-        orden.observaciones = orden.observaciones?.trim() || 'ninguna observacion';
+        orden.observaciones = orden.observaciones?.trim() || '';
         for (const [key, label] of Object.entries(campos)) {
             if (['fechaSalida', 'horaSalida', 'periodoSalida'].includes(key) && !['Finalizada', 'Entregado'].includes(orden.estado) && !orden[key]) continue;
             if (typeof orden[key] !== 'string' || !orden[key].trim()) throw new Error(`Completa el campo ${label}.`);
@@ -32,7 +32,7 @@
             if (orden[key] == null || String(orden[key]).trim() === '' || !Number.isFinite(Number(orden[key])) || Number(orden[key]) < 0) throw new Error(`Completa correctamente el campo ${label}.`);
         }
         if (!Number.isInteger(Number(orden.idMecanico)) || Number(orden.idMecanico) <= 0) throw new Error('Selecciona el mecanico.');
-        if (/^\d+(?:\.\d+)?$/.test(orden.proximoServicio) && Number(orden.proximoServicio) < Number(orden.kilometraje)) throw new Error(`El proximo kilometraje no puede ser menor al registrado (${orden.kilometraje} km).`);
+        if (/^\d+(?:\.\d+)?$/.test(orden.proximoServicio) && Number(orden.proximoServicio) <= Number(orden.kilometraje)) throw new Error(`El proximo servicio debe ser mayor al kilometraje actual (${orden.kilometraje} km).`);
         if (!['manoMecanico', 'manoElectronico', 'manoPintura', 'manoPinchazo'].some(key => orden[key] === true)) throw new Error('Selecciona el tipo de trabajo.');
         if (!Array.isArray(orden.servicios) || !orden.servicios.length || orden.servicios.some(id => !Number.isInteger(Number(id)) || Number(id) <= 0)) throw new Error('Selecciona el tipo de servicio.');
         return orden;
